@@ -1,3 +1,3 @@
-# ku_lost_found
+# KU Lost and Found
 
-A new Flutter project.
+KU Lost & Found - A Flutter application for managing lost and found items at Kasetsart University.
