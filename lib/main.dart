@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:ku_lost_found/home_page.dart';
+import 'login_page.dart';
+import 'home_page.dart';
 
 void main() {
   runApp(const MainApp());
@@ -9,12 +12,12 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
+    return MaterialApp(
+      title: 'KU Lost & Found',
+      theme: ThemeData(
+        fontFamily: 'Line Seed Sans TH',
       ),
+      home: const HomePage(),
     );
   }
 }
