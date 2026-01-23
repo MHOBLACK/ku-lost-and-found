@@ -18,4 +18,13 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/
+    - assets/images/
+
+  fonts:
+    - family: Line Seed Sans TH
+      fonts:
+        - asset: assets/fonts/Line_Seed_Sans/LineSeedSansTH_He.ttf
+        - asset: assets/fonts/Line_Seed_Sans/LineSeedSansTH_Rg.ttf
+        - asset: assets/fonts/Line_Seed_Sans/LineSeedSansTH_Th.ttf
+        - asset: assets/fonts/Line_Seed_Sans/LineSeedSansTH_XBd.ttf
+        - asset: assets/fonts/Line_Seed_Sans/LineSeedSansTH.ttf
