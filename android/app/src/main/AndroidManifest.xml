@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="ku_lost_found"
+        android:label="lost_n_found_test"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
