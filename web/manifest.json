@@ -1,6 +1,6 @@
 {
-    "name": "ku_lost_found",
-    "short_name": "ku_lost_found",
+    "name": "lost_n_found_test",
+    "short_name": "lost_n_found_test",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
