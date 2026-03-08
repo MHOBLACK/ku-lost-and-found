@@ -18,7 +18,7 @@ class HomePage extends StatelessWidget {
               width: 110,
             ),
 
-            _buildBanner(),
+            // _buildBanner(),
 
           ],
         ),
