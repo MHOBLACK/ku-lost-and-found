@@ -147,7 +147,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
       stream: FirebaseFirestore.instance
           .collection('items')
           .where('type', isEqualTo: isLost ? 'lost' : 'found')
-          .orderBy('date', descending: true)
+          .orderBy('date', descending: false)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
