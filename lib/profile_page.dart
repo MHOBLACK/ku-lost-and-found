@@ -225,7 +225,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('รายการแจ้งของหาย', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const Text('รายการแจ้งของฉัน', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 19),
         _buildLostItemCard(),
         const SizedBox(height: 10),
@@ -250,7 +250,7 @@ class _ProfilePageState extends State<ProfilePage> {
       children: [
         Container(
           width: 100,
-          height: 80,
+          height: 100,
           decoration: BoxDecoration(
             color: Colors.grey[200],
             // image: const DecorationImage(image: AssetImage('assets/checker.png'), fit: BoxFit.cover),
@@ -269,10 +269,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: TextStyle(fontSize: 10, color: Color(0xFF757575), height: 1.5),
               ),
               const SizedBox(height: 10),
-              Row(
+              Wrap(
+                spacing: 10,
+                runSpacing: 4,
                 children: const [
                   Text('สถานะ: Status', style: TextStyle(fontSize: 12, color: Color(0xFFB3B3B3))),
-                  SizedBox(width: 10),
                   Text('วันที่แจ้ง: dd/MM/yyyy', style: TextStyle(fontSize: 12, color: Color(0xFFB3B3B3))),
                 ],
               ),

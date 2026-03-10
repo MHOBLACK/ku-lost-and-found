@@ -33,7 +33,6 @@ class HomePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Frame 46 - Status Image
                     Container(
                       width: double.infinity,
                       height: 105,
@@ -46,32 +45,6 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                     
-                    const SizedBox(height: 17), // Gap
-
-                    // Frame 47 - Default Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 30,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF006C68)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        onPressed: () {},
-                        child: const Text(
-                          'ข้อความ',
-                          style: TextStyle(
-                            fontFamily: 'Line Seed Sans TH',
-                            fontWeight: FontWeight.w700,
-                            fontSize: 12,
-                            color: Color(0xFF006C68),
-                          ),
-                        ),
-                      ),
-                    ),
-
                     const SizedBox(height: 17), // Gap
 
                     // Frame 11 - Scrollable List
@@ -137,7 +110,7 @@ class NewsItemTile extends StatelessWidget {
                       color: Color(0xFF757575),
                       height: 1.25,
                     ),
-                    maxLines: 4,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -171,7 +144,7 @@ class NewsItemTile extends StatelessWidget {
                         ),
                         onPressed: () {},
                         child: const Text(
-                          'ข้อความ',
+                          'อ่านเพิ่มเติม',
                           style: TextStyle(
                             fontFamily: 'Line Seed Sans TH',
                             fontWeight: FontWeight.w700,
