@@ -137,6 +137,7 @@ class _AddItemPageState extends State<AddItemPage> {
       ),
       'status': 'lost',
       'created_date': FieldValue.serverTimestamp(),
+      'contacts': _contactsDetailController.text.trim(), // <--- เพิ่มบรรทัดนี้
       'uid': user?.uid,
       'displayName': user?.displayName,
       'images': imageUrls,
@@ -209,20 +210,9 @@ class _AddItemPageState extends State<AddItemPage> {
             prefixIcon: Icon(Icons.pin_drop_outlined),
           ),
         ),
-        const SizedBox(height: 25),
-      ],
-    );
-  }
+        const SizedBox(height: 15),
 
-  Widget _buildFoundSpecificFields() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'ข้อมูลการติดต่อผู้แจ้งพบ',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 10),
+        // --- ส่วนที่ย้ายมาใหม่: ช่องทางการติดต่อ ---
         TextFormField(
           controller: _contactsDetailController,
           maxLength: 255,
@@ -234,8 +224,23 @@ class _AddItemPageState extends State<AddItemPage> {
           validator:
               (value) =>
                   value == null || value.isEmpty
-                      ? 'กรุณาระบุช่องทางการติดต่อเพื่อให้เจ้าของติดต่อกลับ'
+                      ? 'กรุณาระบุช่องทางการติดต่อ'
                       : null,
+        ),
+
+        const SizedBox(height: 25),
+      ],
+    );
+  }
+
+  Widget _buildFoundSpecificFields() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // เปลี่ยนชื่อหัวข้อให้เหมาะกับข้อมูลที่เหลืออยู่
+        const Text(
+          'ข้อมูลการฝากของ (ถ้ามี)',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 10),
         CheckboxListTile(
