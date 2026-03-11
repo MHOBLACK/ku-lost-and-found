@@ -1,5 +1,6 @@
 // * หน้าหลักของแอปพลิเคชัน
 import 'package:flutter/material.dart';
+import 'add_item_page.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -44,7 +45,18 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                     
-                    const SizedBox(height: 17), // Gap
+                    const SizedBox(height: 15),
+
+                    // Quick Menu Row
+                    Row(
+                      children: [
+                        _buildQuickActionButton(context, 'แจ้งของหาย', Icons.search_rounded, const Color(0xFF006C68), 'lost'),
+                        const SizedBox(width: 12),
+                        _buildQuickActionButton(context, 'แจ้งพบของ', Icons.check_circle_outline, Colors.orange.shade700, 'found'),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 15), // Gap
 
                     // Frame 11 - Scrollable List
                     Expanded(
@@ -57,6 +69,43 @@ class HomePage extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionButton(BuildContext context, String label, IconData icon, Color color, String type) {
+    return Expanded(
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: color,
+          side: BorderSide(color: color),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddItemPage(itemType: type)),
+          );
+        },
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Line Seed Sans TH',
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: color,
               ),
             ),
           ],

@@ -171,6 +171,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
           separatorBuilder: (context, index) => const Divider(height: 24, color: Color(0xFFEEEEEE)),
           itemBuilder: (context, index) {
             final data = docs[index].data() as Map<String, dynamic>;
+            data['id'] = docs[index].id;
             final title = data['title'] ?? 'ไม่ระบุชื่อ';
             final description = data['description'] ?? '';
             final timestamp = data['date'] as Timestamp?;

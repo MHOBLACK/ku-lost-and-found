@@ -41,14 +41,21 @@ class MainApp extends StatelessWidget {
 
 // * แท็บด้านล่าง
 class BottomNavBar extends StatefulWidget {
-  const BottomNavBar({super.key});
+  final int initialIndex;
+  const BottomNavBar({super.key, this.initialIndex = 0});
 
   @override
   State<BottomNavBar> createState() => _BottomNavBarState();
 }
 
 class _BottomNavBarState extends State<BottomNavBar> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   // สีหลัก (เขียวเข้ม)
   // final Color _primaryColor = const Color(0xFF006C68);
@@ -56,6 +63,7 @@ class _BottomNavBarState extends State<BottomNavBar> {
   // รายการหน้าต่างๆ
   final List<Widget> pageOptions = const [
     HomePage(),
+    
     ItemsListScreen(), // เปลี่ยนจาก SearchPage เป็นหน้ารายการของหายที่มี Tab
     // AddItemPage(), // หน้านี้จะไม่ถูกแสดงจริง เพราะปุ่มตรงกลางเป็น FAB
     CheckItemPage(),

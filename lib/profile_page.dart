@@ -265,9 +265,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: docs.length,
                 separatorBuilder: (context, index) =>
-                    const SizedBox(height: 10),
+                    const Divider(height: 24, color: Color(0xFFEEEEEE)),
                 itemBuilder: (context, index) {
                   final data = docs[index].data() as Map<String, dynamic>;
+                  data['id'] = docs[index].id;
                   return _buildLostItemCard(data);
                 },
               );
@@ -288,42 +289,45 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  String _formatDate(Timestamp? timestamp) {
+  String _getTimeAgo(Timestamp? timestamp) {
     if (timestamp == null) return '-';
     final dt = timestamp.toDate();
-    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes} mins ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    return '${diff.inDays} days ago';
   }
 
   Widget _buildLostItemCard(Map<String, dynamic> data) {
-    final String description =
-        data['description'] ?? data['title'] ?? 'ไม่มีรายละเอียด';
-    final Timestamp? date = data['date'];
+    final title = data['title'] ?? 'ไม่ระบุชื่อ';
+    final description = data['description'] ?? '';
+    final timestamp = data['date'] as Timestamp?;
     final String type = data['type'] ?? 'lost';
+    final bool isLost = type == 'lost';
     final List<dynamic> images = data['images'] ?? [];
-    final String statusText = type == 'lost' ? 'กำลังตามหา' : 'พบแล้ว';
 
     Widget imageWidget;
     if (images.isNotEmpty && images.first.toString().startsWith('http')) {
       imageWidget = Image.network(
         images.first,
-        width: 100,
-        height: 100,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
           return Container(
-            width: 100,
-            height: 100,
             color: Colors.grey[200],
             child: const Icon(Icons.broken_image, color: Colors.grey),
           );
         },
       );
     } else {
-      imageWidget = Container(
-        width: 100,
-        height: 100,
-        color: Colors.grey[200],
-        child: const Icon(Icons.image_not_supported, color: Colors.grey),
+      imageWidget = Image.asset(
+        'assets/Checker.png',
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: Colors.grey[200],
+            child: const Icon(Icons.image_not_supported, color: Colors.grey),
+          );
+        },
       );
     }
 
@@ -337,28 +341,63 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(borderRadius: BorderRadius.circular(8), child: imageWidget),
-          const SizedBox(width: 10),
+          // Thumbnail
+          Container(
+            width: 90,
+            height: 90,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              color: Colors.grey[200],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: imageWidget,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(description,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 10, color: Color(0xFF757575), height: 1.5)),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 4,
+                Text(
+                  isLost ? 'ตามหา: $title' : 'พบ: $title',
+                  style: const TextStyle(
+                    fontFamily: 'Line Seed Sans TH',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontFamily: 'Line Seed Sans TH',
+                    fontSize: 12,
+                    color: Color(0xFF757575),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('สถานะ: $statusText',
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFFB3B3B3))),
-                    Text('วันที่แจ้ง: ${_formatDate(date)}',
-                        style: const TextStyle(
-                            fontSize: 12, color: Color(0xFFB3B3B3))),
+                    Text(
+                      _getTimeAgo(timestamp),
+                      style: const TextStyle(
+                          fontSize: 10, color: Color(0xFFB3B3B3)),
+                    ),
+                    Text(
+                      'รายละเอียด >',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isLost
+                            ? const Color(0xFF006C68)
+                            : Colors.orange.shade800,
+                      ),
+                    ),
                   ],
                 ),
               ],

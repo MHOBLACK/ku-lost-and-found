@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'chat_screen.dart';
 
 class ItemDetailScreen extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -66,7 +68,7 @@ class ItemDetailScreen extends StatelessWidget {
                       const SizedBox(height: 20),
                       _buildMapSection(location),
                       const SizedBox(height: 20),
-                      _buildActionButtons(),
+                      _buildActionButtons(context),
                       const SizedBox(height: 30),
                     ],
                   ),
@@ -255,7 +257,7 @@ class ItemDetailScreen extends StatelessWidget {
   String _formatDate(Timestamp? timestamp) {
     if (timestamp == null) return '-';
     final dt = timestamp.toDate();
-    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} เวลา ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} น.';
   }
 
   String _formatLocation(GeoPoint? point) {
@@ -296,7 +298,11 @@ class ItemDetailScreen extends StatelessWidget {
   }
 
   // Frame 42 (Part 2) - Action Buttons
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final isOwner = user != null && data['uid'] == user.uid;
+    final String type = data['type'] ?? 'lost';
+
     return Column(
       children: [
         // Dark Teal Button (Filled)
@@ -304,17 +310,51 @@ class ItemDetailScreen extends StatelessWidget {
           width: double.infinity,
           height: 45,
           child: ElevatedButton(
-            onPressed: () {},
+            onPressed: () async {
+              if (isOwner) {
+                // Confirmation Dialog
+                final bool? confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text('ยืนยันการลบ', style: TextStyle(fontFamily: 'Line Seed Sans TH', fontWeight: FontWeight.bold)),
+                      content: const Text('คุณแน่ใจหรือไม่ว่าต้องการลบโพสต์นี้?\nการกระทำนี้ไม่สามารถย้อนกลับได้', style: TextStyle(fontFamily: 'Line Seed Sans TH')),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('ยกเลิก', style: TextStyle(fontFamily: 'Line Seed Sans TH', color: Colors.grey)),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: TextButton.styleFrom(foregroundColor: Colors.red),
+                          child: const Text('ลบโพสต์', style: TextStyle(fontFamily: 'Line Seed Sans TH', fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    );
+                  },
+                );
+
+                if (confirm == true && data['id'] != null) {
+                  await FirebaseFirestore.instance
+                      .collection('items')
+                      .doc(data['id'])
+                      .delete();
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                }
+              }
+            },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF005451),
+              backgroundColor: isOwner ? Colors.red : const Color(0xFF005451),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
               elevation: 0,
             ),
-            child: const Text(
-              'นี่คือของของฉัน', // "This is mine"
-              style: TextStyle(
+            child: Text(
+              isOwner ? 'ลบโพสต์' : (type == 'found' ? 'นี่คือของของฉัน' : 'ฉันเจอของชิ้นนี้'),
+              style: const TextStyle(
                 fontFamily: 'Line Seed Sans TH',
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
@@ -323,30 +363,68 @@ class ItemDetailScreen extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        // Light Teal Button (Outlined)
-        SizedBox(
-          width: double.infinity,
-          height: 45,
-          child: OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF006C68)),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+        if (!isOwner) ...[
+          const SizedBox(height: 12),
+          // Light Teal Button (Outlined)
+          SizedBox(
+            width: double.infinity,
+            height: 45,
+            child: OutlinedButton(
+            onPressed: () async {
+              if (user == null) return;
+
+              // Generate a unique Chat Room ID: ItemID_VisitorID
+              // (This separates chats per item per user)
+              final String itemId = data['id'] ?? 'unknown_item';
+              final String ownerId = data['uid'];
+              final String visitorId = user.uid;
+              final String chatRoomId = '${itemId}_$visitorId';
+
+              // Initialize Chat Room Metadata if it doesn't exist
+              final chatDocRef = FirebaseFirestore.instance.collection('chats').doc(chatRoomId);
+              final chatDoc = await chatDocRef.get();
+
+              if (!chatDoc.exists) {
+                await chatDocRef.set({
+                  'itemId': itemId,
+                  'ownerId': ownerId,
+                  'visitorId': visitorId,
+                  'participants': [ownerId, visitorId],
+                  'itemTitle': data['title'] ?? 'ไม่ระบุชื่อ',
+                  'itemImage': (data['images'] != null && (data['images'] as List).isNotEmpty)
+                      ? data['images'][0]
+                      : (data['imageUrl'] ?? ''),
+                  'lastMessage': '',
+                  'lastMessageTime': FieldValue.serverTimestamp(),
+                });
+              }
+
+              if (context.mounted) {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
+                  chatRoomId: chatRoomId,
+                  otherUserId: ownerId,
+                  itemName: data['title'] ?? 'Chat',
+                )));
+              }
+            },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF006C68)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
               ),
-            ),
-            child: const Text(
-              'แชทกับผู้ที่พบของชิ้นนี้', // "Chat with finder"
-              style: TextStyle(
-                fontFamily: 'Line Seed Sans TH',
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: Color(0xFF006C68),
+              child: Text(
+                type == 'found' ? 'แชทกับผู้ที่พบของชิ้นนี้' : 'แชทกับผู้ตามหา',
+                style: const TextStyle(
+                  fontFamily: 'Line Seed Sans TH',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Color(0xFF006C68),
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
