@@ -69,6 +69,8 @@ class ItemDetailScreen extends StatelessWidget {
                       _buildMapSection(location),
                       const SizedBox(height: 20),
                       _buildActionButtons(context),
+                      if (FirebaseAuth.instance.currentUser?.uid == data['uid'])
+                        _buildOwnerChatList(context),
                       const SizedBox(height: 30),
                     ],
                   ),
@@ -425,6 +427,99 @@ class ItemDetailScreen extends StatelessWidget {
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildOwnerChatList(BuildContext context) {
+    if (data['id'] == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        const Text(
+          "รายการแชทที่เกี่ยวข้อง",
+          style: TextStyle(
+            fontFamily: 'Line Seed Sans TH',
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 10),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('chats')
+              .where('itemId', isEqualTo: data['id'])
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'ยังไม่มีการติดต่อเข้ามา',
+                  style: TextStyle(color: Colors.grey, fontFamily: 'Line Seed Sans TH'),
+                  textAlign: TextAlign.center,
+                ),
+              );
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: snapshot.data!.docs.length,
+              separatorBuilder: (context, index) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final chatDoc = snapshot.data!.docs[index];
+                final chatData = chatDoc.data() as Map<String, dynamic>;
+                final String visitorId = chatData['visitorId'] ?? '';
+                final String lastMessage = chatData['lastMessage'] ?? '-';
+
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFF006C68).withOpacity(0.1),
+                    child: const Icon(Icons.person, color: Color(0xFF006C68)),
+                  ),
+                  title: const Text(
+                    'ผู้ติดต่อ',
+                    style: TextStyle(
+                      fontFamily: 'Line Seed Sans TH',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  subtitle: Text(
+                    lastMessage,
+                    style: const TextStyle(
+                      fontFamily: 'Line Seed Sans TH',
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
+                      chatRoomId: chatDoc.id,
+                      otherUserId: visitorId,
+                      itemName: data['title'] ?? 'Chat',
+                    )));
+                  },
+                );
+              },
+            );
+          },
+        ),
       ],
     );
   }
