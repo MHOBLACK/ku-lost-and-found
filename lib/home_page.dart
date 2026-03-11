@@ -25,7 +25,6 @@ class HomePage extends StatelessWidget {
               ),
             ),
 
-            // Frame 68 (Main Container)
             Positioned.fill(
               top: 134,
               child: Padding(
@@ -39,7 +38,7 @@ class HomePage extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(10),
                         image: const DecorationImage(
-                          image: AssetImage('assets/เปิดใช้งานแล้ว!.png'),
+                          image: AssetImage('assets/images/Grand-Opening.png'),
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -85,7 +84,7 @@ class NewsItemTile extends StatelessWidget {
             height: 90,
             decoration: const BoxDecoration(
               image: DecorationImage(
-                image: AssetImage('assets/Checker.png'),
+                image: AssetImage('assets/images/Grand-Opening.png'),
                 fit: BoxFit.cover,
               ),
             ),
@@ -117,7 +116,6 @@ class NewsItemTile extends StatelessWidget {
                 
                 const Spacer(),
 
-                // Frame 43 (Footer: Date + Small Button)
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
