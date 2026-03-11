@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'chat_detail_page.dart';
 
 class ChatScreen extends StatefulWidget {
   final String chatRoomId;
@@ -61,6 +62,19 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Text(widget.itemName, style: const TextStyle(color: Colors.white, fontFamily: 'Line Seed Sans TH')),
         backgroundColor: const Color(0xFF006C68),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatDetailPage(chatRoomId: widget.chatRoomId),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [

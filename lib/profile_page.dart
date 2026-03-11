@@ -172,32 +172,48 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildLevelSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('ระดับ', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 14),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFF006C68)),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('เลเวล 1', style: TextStyle(color: Color(0xFF005451), fontSize: 20, fontWeight: FontWeight.bold)),
-                  Text('นักหาของสมัครเล่น', style: TextStyle(color: Color(0xFFB3B3B3), fontSize: 12)),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: user != null
+          ? FirebaseFirestore.instance.collection('users').doc(user!.uid).snapshots()
+          : null,
+      builder: (context, snapshot) {
+        int level = 1;
+        int points = 0;
+
+        if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+          final data = snapshot.data!.data() as Map<String, dynamic>;
+          level = data['level'] ?? 1;
+          points = data['points'] ?? 0;
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('ระดับ', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 13),
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFF006C68)),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('เลเวล $level', style: const TextStyle(color: Color(0xFF005451), fontSize: 20, fontWeight: FontWeight.bold)),
+                      const Text('นักหาของสมัครเล่น', style: TextStyle(color: Color(0xFFB3B3B3), fontSize: 12)),
+                    ],
+                  ),
+                  Text('$points แต้ม', style: const TextStyle(color: Color(0xFF005451), fontSize: 20, fontWeight: FontWeight.bold)),
                 ],
               ),
-              const Text('0 แต้ม', style: TextStyle(color: Color(0xFF005451), fontSize: 20, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      },
     );
   }
 
