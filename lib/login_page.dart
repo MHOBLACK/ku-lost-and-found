@@ -34,7 +34,6 @@ class LoginPage extends StatelessWidget {
                   'displayName': user.displayName,
                   // 'photoURL': user.photoURL,
                   'points': 0,
-                  'level': 1,
                   'role': 'user',
                   'createdAt': FieldValue.serverTimestamp(),
                   'lastLogin': FieldValue.serverTimestamp(),

@@ -5,6 +5,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'item_detail_screen.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'inbox_page.dart'; // <-- เพิ่มบรรทัดนี้
 // import 'package:camera/camera.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -35,6 +37,59 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       debugPrint('Error picking image: $e');
     }
+  }
+
+  // ฟังก์ชันแสดง Popup ยืนยันการออกจากระบบ
+  Future<void> _showLogoutConfirmation(BuildContext context) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: true, // แตะที่ว่างเพื่อปิดได้
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'ออกจากระบบ',
+            style: TextStyle(
+              fontFamily: 'Line Seed Sans TH',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: const Text(
+            'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?',
+            style: TextStyle(fontFamily: 'Line Seed Sans TH'),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('ยกเลิก', style: TextStyle(color: Colors.grey)),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(); // ปิด Dialog
+              },
+            ),
+            TextButton(
+              child: const Text(
+                'ยืนยัน',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onPressed: () async {
+                Navigator.of(dialogContext).pop();
+
+                try {
+                  await GoogleSignIn().signOut();
+                  await FirebaseAuth.instance.signOut();
+                } catch (e) {
+                  debugPrint('Error signing out: $e');
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // แสดง BottomSheet เลือกแหล่งรูปภาพ
@@ -89,7 +144,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: IconButton(
                 icon: const Icon(Icons.logout, size: 30, color: Color(0xFF1E1E1E)),
                 onPressed: () async {
-                  await FirebaseAuth.instance.signOut();
+                  _showLogoutConfirmation(context);
                 },
               ),
             ),
@@ -109,8 +164,8 @@ class _ProfilePageState extends State<ProfilePage> {
                         const SizedBox(height: 20),
                         _buildInboxSection(),
                         const SizedBox(height: 20),
-                        _buildLostItemsSection(),
-                        const SizedBox(height: 100), // Space for Bottom Nav
+                        // _buildLostItemsSection(),
+                        const SizedBox(height: 100)
                       ],
                     ),
                   ),
@@ -177,12 +232,12 @@ class _ProfilePageState extends State<ProfilePage> {
           ? FirebaseFirestore.instance.collection('users').doc(user!.uid).snapshots()
           : null,
       builder: (context, snapshot) {
-        int level = 1;
+        // int level = 1;
         int points = 0;
 
         if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>;
-          level = data['level'] ?? 1;
+          // level = data['level'] ?? 1;
           points = data['points'] ?? 0;
         }
 
@@ -203,8 +258,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('เลเวล $level', style: const TextStyle(color: Color(0xFF005451), fontSize: 20, fontWeight: FontWeight.bold)),
-                      const Text('นักหาของสมัครเล่น', style: TextStyle(color: Color(0xFFB3B3B3), fontSize: 12)),
+                      Text('แต้มสะสม (ปัจจุบัน)', style: const TextStyle(color: Color(0xFF005451), fontSize: 20, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   Text('$points แต้ม', style: const TextStyle(color: Color(0xFF005451), fontSize: 20, fontWeight: FontWeight.bold)),
@@ -217,6 +271,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  
   Widget _buildInboxSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,7 +286,12 @@ class _ProfilePageState extends State<ProfilePage> {
               backgroundColor: const Color(0xFF005451),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context, 
+                MaterialPageRoute(builder: (context) => const InboxPage()),
+              );
+            },
             child: const Text('เปิด', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ),
@@ -318,8 +378,8 @@ class _ProfilePageState extends State<ProfilePage> {
     final title = data['title'] ?? 'ไม่ระบุชื่อ';
     final description = data['description'] ?? '';
     final timestamp = data['date'] as Timestamp?;
-    final String type = data['type'] ?? 'lost';
-    final bool isLost = type == 'lost';
+    final String status = data['status'] ?? 'lost';
+    final bool isLost = status == 'lost';
     final List<dynamic> images = data['images'] ?? [];
 
     Widget imageWidget;
@@ -336,7 +396,7 @@ class _ProfilePageState extends State<ProfilePage> {
       );
     } else {
       imageWidget = Image.asset(
-        'assets/Checker.png',
+        'assets/No_Image_Available.png',
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
           return Container(

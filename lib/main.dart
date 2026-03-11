@@ -81,33 +81,6 @@ class _BottomNavBarState extends State<BottomNavBar> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(child: pageOptions[_selectedIndex]),
-
-      // floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      // floatingActionButton: Transform.translate(
-      //   // *หัวใจสำคัญ: ดันปุ่มลงมา 25 pixel เพื่อให้อยู่ระดับเดียวกับบาร์
-      //   offset: const Offset(0, 25),
-      //   child: SizedBox(
-      //     height: 70, // กำหนดขนาดปุ่ม
-      //     width: 70,
-      //     child: FloatingActionButton(
-      //       backgroundColor: _primaryColor,
-      //       elevation: 4,
-      //       onPressed: () => _onItemTapped(2),
-      //       shape: const CircleBorder(),
-      //       child: Column(
-      //         mainAxisAlignment: MainAxisAlignment.center,
-      //         children: const [
-      //           Icon(Icons.add, size: 28, color: Colors.white),
-      //           Text(
-      //             "แจ้งหาย",
-      //             style: TextStyle(fontSize: 14, color: Colors.white, height: 1),
-      //           ),
-      //         ],
-      //       ),
-      //     ),
-      //   ),
-      // ),
-
       // --- แถบเมนูด้านล่าง ---
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _selectedIndex,

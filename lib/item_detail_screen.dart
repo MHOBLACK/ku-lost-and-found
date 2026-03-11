@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'edit_item_page.dart'; // เพิ่มบรรทัดนี้
+import 'edit_item_page.dart';
+import 'contact_page.dart';
 
 class ItemDetailScreen extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -14,12 +15,10 @@ class ItemDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final String? docId = data['id'];
 
-    // ถ้าไม่มี ID (กัน Error) ให้แสดงข้อมูลเดิมไปก่อน
     if (docId == null) {
       return _buildContent(context, data);
     }
 
-    // ใช้ StreamBuilder คอยฟังการเปลี่ยนแปลงของ Document นี้
     return StreamBuilder<DocumentSnapshot>(
       stream:
           FirebaseFirestore.instance.collection('items').doc(docId).snapshots(),
@@ -52,20 +51,18 @@ class ItemDetailScreen extends StatelessWidget {
           );
         }
 
-        // สร้าง Map ตัวใหม่จากข้อมูลล่าสุด (Real-time) และแนบ ID กลับเข้าไป
         final Map<String, dynamic> freshData = Map<String, dynamic>.from(
           snapshot.data!.data() as Map<String, dynamic>,
         );
         freshData['id'] = docId;
 
-        // โยนข้อมูลล่าสุดไปสร้างหน้าจอ
         return _buildContent(context, freshData);
       },
     );
   }
 
   Widget _buildContent(BuildContext context, Map<String, dynamic> currentData) {
-    final String own_name = currentData['displayName'];
+    final String own_name = currentData['displayName'] ?? 'ไม่ระบุชื่อ';
     final String status = currentData['status'] ?? 'lost';
     final String title = currentData['title'] ?? '';
     final String description = currentData['description'] ?? '';
@@ -81,7 +78,6 @@ class ItemDetailScreen extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // Back Button
             Positioned(
               top: 10,
               left: 10,
@@ -90,8 +86,6 @@ class ItemDetailScreen extends StatelessWidget {
                 onPressed: () => Navigator.pop(context),
               ),
             ),
-
-            // Logo 1 - Centered at the top
             Positioned(
               top: 71,
               left: 0,
@@ -104,8 +98,6 @@ class ItemDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
-
-            // Main Scrollable Content
             Positioned(
               top: 181,
               left: 0,
@@ -130,7 +122,7 @@ class ItemDetailScreen extends StatelessWidget {
                       const SizedBox(height: 20),
                       _buildMapSection(location),
                       const SizedBox(height: 20),
-                      _buildActionButtons(context),
+                      _buildActionButtons(context, currentData),
                       const SizedBox(height: 30),
                     ],
                   ),
@@ -143,13 +135,12 @@ class ItemDetailScreen extends StatelessWidget {
     );
   }
 
-  // 1. Name, Date, Location Info
   Widget _buildHeaderInfo(
     String own_name,
-    String title, 
-    String description, 
-    Timestamp? created_date, 
-    GeoPoint? location, 
+    String title,
+    String description,
+    Timestamp? created_date,
+    GeoPoint? location,
     String status,
     String locationDetail,
   ) {
@@ -164,7 +155,6 @@ class ItemDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Name (Title) & Description
           Text(
             title,
             style: const TextStyle(
@@ -186,15 +176,13 @@ class ItemDetailScreen extends StatelessWidget {
             ),
           ],
           const Divider(height: 24, color: Color(0xFFEEEEEE)),
-
-          // Date
           _buildInfoRow(
-            status == 'found' ? "วันที่และเวลา (แจ้งพบ)" : "วันที่และเวลา (แจ้งหาย)",
+            status == 'found'
+                ? "วันที่และเวลา (แจ้งพบ)"
+                : "วันที่และเวลา (แจ้งหาย)",
             _formatDate(created_date),
             Icons.calendar_today_outlined,
           ),
-
-          // Location Part 2: Detail Text
           if (locationDetail.isNotEmpty) ...[
             const SizedBox(height: 12),
             _buildInfoRow(
@@ -204,27 +192,18 @@ class ItemDetailScreen extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-
-          // Location Part 1: Lat Long
           _buildInfoRow(
             "พิกัด",
             _formatLocation(location),
             Icons.location_on_outlined,
           ),
           const SizedBox(height: 12),
-
-          _buildInfoRow(
-            "ผู้แจ้ง",
-            own_name,
-            Icons.person_4_outlined,
-          ),
-          
+          _buildInfoRow("ผู้แจ้ง", own_name, Icons.person_4_outlined),
         ],
       ),
     );
   }
 
-  // 2. Images Section
   Widget _buildImageSection(List<dynamic> images) {
     if (images.isEmpty) return const SizedBox.shrink();
 
@@ -252,10 +231,10 @@ class ItemDetailScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
                   image: DecorationImage(
-                    // Assuming images are URLs. If they are assets in testing, allow check.
-                    image: images[index].toString().startsWith('http') 
-                        ? NetworkImage(images[index]) 
-                        : AssetImage(images[index]) as ImageProvider,
+                    image:
+                        images[index].toString().startsWith('http')
+                            ? NetworkImage(images[index])
+                            : AssetImage(images[index]) as ImageProvider,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -267,7 +246,6 @@ class ItemDetailScreen extends StatelessWidget {
     );
   }
 
-  // 3. Map Section
   Widget _buildMapSection(GeoPoint? location) {
     if (location == null) return const SizedBox.shrink();
 
@@ -294,10 +272,7 @@ class ItemDetailScreen extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: FlutterMap(
-              options: MapOptions(
-                initialCenter: latLng,
-                initialZoom: 15.0,
-              ),
+              options: MapOptions(initialCenter: latLng, initialZoom: 15.0),
               children: [
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -367,130 +342,238 @@ class ItemDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(
+    BuildContext context,
+    Map<String, dynamic> currentData,
+  ) {
     final user = FirebaseAuth.instance.currentUser;
-    final isOwner = user != null && data['uid'] == user.uid;
-    final String status = data['status'] ?? 'lost';
+    final isOwner = user != null && currentData['uid'] == user.uid;
+    final String status = currentData['status'] ?? 'lost';
+    final String progress = currentData['progress'] ?? '';
 
     return Column(
       children: [
         if (isOwner) ...[
-          SizedBox(
-            width: double.infinity,
-            height: 45,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => EditItemPage(data: data),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF006C68),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'แก้ไขโพสต์',
-                style: TextStyle(
-                  fontFamily: 'Line Seed Sans TH',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-
-        // ปุ่มลบโพสต์ หรือ ปุ่มแสดงตัวเป็นเจ้าของ/คนเจอ
-        SizedBox(
-          width: double.infinity,
-          height: 45,
-          child: ElevatedButton(
-            onPressed: () async {
-              if (isOwner) {
-                // Confirmation Dialog สำหรับการลบ
-                final bool? confirm = await showDialog<bool>(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text(
-                        'ยืนยันการลบ',
-                        style: TextStyle(
-                          fontFamily: 'Line Seed Sans TH',
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      content: const Text(
-                        'คุณแน่ใจหรือไม่ว่าต้องการลบโพสต์นี้?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
-                        style: TextStyle(fontFamily: 'Line Seed Sans TH'),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text(
-                            'ยกเลิก',
-                            style: TextStyle(
-                              fontFamily: 'Line Seed Sans TH',
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
-                          ),
-                          child: const Text(
-                            'ลบโพสต์',
-                            style: TextStyle(
-                              fontFamily: 'Line Seed Sans TH',
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                );
-
-                if (confirm == true && data['id'] != null) {
-                  await FirebaseFirestore.instance
-                      .collection('items')
-                      .doc(data['id'])
-                      .delete();
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor:
-                  isOwner ? Colors.red.shade600 : const Color(0xFF005451),
-              shape: RoundedRectangleBorder(
+          if (progress == 'pending') ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                border: Border.all(color: Colors.orange.shade200),
                 borderRadius: BorderRadius.circular(8),
               ),
-              elevation: 0,
-            ),
-            child: Text((status == 'found'
-                      ? 'นี่คือของของฉัน'
-                      : 'ฉันเจอของชิ้นนี้'),
-              style: const TextStyle(
-                fontFamily: 'Line Seed Sans TH',
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                color: Colors.white,
+              child: const Text(
+                'มีผู้แจ้งพบของแล้ว กรุณาตรวจสอบหลักฐานและยืนยันใน "กล่องข้อความ"',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.orange,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Line Seed Sans TH',
+                ),
               ),
             ),
-          ),
-        ),
+          ] else if (progress == 'founded') ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                border: Border.all(color: Colors.green.shade200),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '✅ ยืนยันพบของแล้ว\nกรุณากดรับของและมอบแต้มให้ผู้พบที่ "กล่องจดหมาย"',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Line Seed Sans TH',
+                ),
+              ),
+            ),
+          ] else if (progress == 'completed') ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                border: Border.all(color: Colors.green.shade200),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '✅ รายการนี้เสร็จสิ้นและได้รับของคืนเรียบร้อยแล้ว',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Line Seed Sans TH',
+                ),
+              ),
+            ),
+          ] else ...[
+            SizedBox(
+              width: double.infinity,
+              height: 45,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditItemPage(data: currentData),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF006C68),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'แก้ไขโพสต์',
+                  style: TextStyle(
+                    fontFamily: 'Line Seed Sans TH',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 45,
+              child: ElevatedButton(
+                onPressed: () async {
+                  final bool? confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        title: const Text(
+                          'ยืนยันการลบ',
+                          style: TextStyle(
+                            fontFamily: 'Line Seed Sans TH',
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        content: const Text(
+                          'คุณแน่ใจหรือไม่ว่าต้องการลบโพสต์นี้?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
+                          style: TextStyle(fontFamily: 'Line Seed Sans TH'),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text(
+                              'ยกเลิก',
+                              style: TextStyle(
+                                fontFamily: 'Line Seed Sans TH',
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                            ),
+                            child: const Text(
+                              'ลบโพสต์',
+                              style: TextStyle(
+                                fontFamily: 'Line Seed Sans TH',
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  if (confirm == true && currentData['id'] != null) {
+                    await FirebaseFirestore.instance
+                        .collection('items')
+                        .doc(currentData['id'])
+                        .delete();
+                    if (context.mounted) Navigator.pop(context);
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red.shade600,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                child: const Text(
+                  'ลบโพสต์',
+                  style: TextStyle(
+                    fontFamily: 'Line Seed Sans TH',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+
+        if (!isOwner) ...[
+          if (progress == '') ...[
+            SizedBox(
+              width: double.infinity,
+              height: 45,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ContactPage(itemData: currentData),
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF005451),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  status == 'found' ? 'นี่คือของของฉัน' : 'ฉันเจอของชิ้นนี้',
+                  style: const TextStyle(
+                    fontFamily: 'Line Seed Sans TH',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'รายการนี้มีผู้แจ้งดำเนินการแล้ว',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Line Seed Sans TH',
+                ),
+              ),
+            ),
+          ],
+        ],
       ],
     );
   }
