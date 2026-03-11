@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'chat_screen.dart';
+import 'edit_item_page.dart'; // เพิ่มบรรทัดนี้
 
 class ItemDetailScreen extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -12,15 +12,69 @@ class ItemDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Extract data
-    final String type = data['type'] ?? 'lost';
-    final String title = data['title'] ?? '';
-    final String description = data['description'] ?? '';
-    final Timestamp? date = data['date'];
-    final GeoPoint? location = data['location'];
-    final String locationDetail = data['location_detail'] ?? '';
-    // Support multiple images, fall back to single imageUrl, or empty list
-    final List<dynamic> images = data['images'] ?? (data['imageUrl'] != null ? [data['imageUrl']] : []);
+    final String? docId = data['id'];
+
+    // ถ้าไม่มี ID (กัน Error) ให้แสดงข้อมูลเดิมไปก่อน
+    if (docId == null) {
+      return _buildContent(context, data);
+    }
+
+    // ใช้ StreamBuilder คอยฟังการเปลี่ยนแปลงของ Document นี้
+    return StreamBuilder<DocumentSnapshot>(
+      stream:
+          FirebaseFirestore.instance.collection('items').doc(docId).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(
+              child: CircularProgressIndicator(color: Color(0xFF006C68)),
+            ),
+          );
+        }
+
+        if (snapshot.hasError || !snapshot.hasData || !snapshot.data!.exists) {
+          return Scaffold(
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+            body: const Center(
+              child: Text(
+                'ไม่พบข้อมูล หรือโพสต์ถูกลบไปแล้ว',
+                style: TextStyle(fontFamily: 'Line Seed Sans TH'),
+              ),
+            ),
+          );
+        }
+
+        // สร้าง Map ตัวใหม่จากข้อมูลล่าสุด (Real-time) และแนบ ID กลับเข้าไป
+        final Map<String, dynamic> freshData = Map<String, dynamic>.from(
+          snapshot.data!.data() as Map<String, dynamic>,
+        );
+        freshData['id'] = docId;
+
+        // โยนข้อมูลล่าสุดไปสร้างหน้าจอ
+        return _buildContent(context, freshData);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context, Map<String, dynamic> currentData) {
+    final String own_name = currentData['displayName'];
+    final String status = currentData['status'] ?? 'lost';
+    final String title = currentData['title'] ?? '';
+    final String description = currentData['description'] ?? '';
+    final Timestamp? created_date = currentData['created_date'];
+    final GeoPoint? location = currentData['location'];
+    final String locationDetail = currentData['location_detail'] ?? '';
+    final List<dynamic> images =
+        currentData['images'] ??
+        (currentData['imageUrl'] != null ? [currentData['imageUrl']] : []);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -62,15 +116,21 @@ class ItemDetailScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      _buildHeaderInfo(title, description, date, location, type, locationDetail),
+                      _buildHeaderInfo(
+                        own_name,
+                        title,
+                        description,
+                        created_date,
+                        location,
+                        status,
+                        locationDetail,
+                      ),
                       const SizedBox(height: 20),
                       _buildImageSection(images),
                       const SizedBox(height: 20),
                       _buildMapSection(location),
                       const SizedBox(height: 20),
                       _buildActionButtons(context),
-                      if (FirebaseAuth.instance.currentUser?.uid == data['uid'])
-                        _buildOwnerChatList(context),
                       const SizedBox(height: 30),
                     ],
                   ),
@@ -85,11 +145,12 @@ class ItemDetailScreen extends StatelessWidget {
 
   // 1. Name, Date, Location Info
   Widget _buildHeaderInfo(
+    String own_name,
     String title, 
     String description, 
-    Timestamp? date, 
+    Timestamp? created_date, 
     GeoPoint? location, 
-    String type,
+    String status,
     String locationDetail,
   ) {
     return Container(
@@ -128,8 +189,8 @@ class ItemDetailScreen extends StatelessWidget {
 
           // Date
           _buildInfoRow(
-            type == 'found' ? "วันที่พบ" : "วันที่หาย",
-            _formatDate(date),
+            status == 'found' ? "วันที่และเวลา (แจ้งพบ)" : "วันที่และเวลา (แจ้งหาย)",
+            _formatDate(created_date),
             Icons.calendar_today_outlined,
           ),
 
@@ -150,6 +211,14 @@ class ItemDetailScreen extends StatelessWidget {
             _formatLocation(location),
             Icons.location_on_outlined,
           ),
+          const SizedBox(height: 12),
+
+          _buildInfoRow(
+            "ผู้แจ้ง",
+            own_name,
+            Icons.person_4_outlined,
+          ),
+          
         ],
       ),
     );
@@ -267,7 +336,6 @@ class ItemDetailScreen extends StatelessWidget {
     return '${point.latitude.toStringAsFixed(5)}, ${point.longitude.toStringAsFixed(5)}';
   }
 
-  // Shared Widget for Label: Value rows
   Widget _buildInfoRow(String label, String value, IconData icon) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,37 +367,93 @@ class ItemDetailScreen extends StatelessWidget {
     );
   }
 
-  // Frame 42 (Part 2) - Action Buttons
   Widget _buildActionButtons(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final isOwner = user != null && data['uid'] == user.uid;
-    final String type = data['type'] ?? 'lost';
+    final String status = data['status'] ?? 'lost';
 
     return Column(
       children: [
-        // Dark Teal Button (Filled)
+        if (isOwner) ...[
+          SizedBox(
+            width: double.infinity,
+            height: 45,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditItemPage(data: data),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF006C68),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'แก้ไขโพสต์',
+                style: TextStyle(
+                  fontFamily: 'Line Seed Sans TH',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // ปุ่มลบโพสต์ หรือ ปุ่มแสดงตัวเป็นเจ้าของ/คนเจอ
         SizedBox(
           width: double.infinity,
           height: 45,
           child: ElevatedButton(
             onPressed: () async {
               if (isOwner) {
-                // Confirmation Dialog
+                // Confirmation Dialog สำหรับการลบ
                 final bool? confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) {
                     return AlertDialog(
-                      title: const Text('ยืนยันการลบ', style: TextStyle(fontFamily: 'Line Seed Sans TH', fontWeight: FontWeight.bold)),
-                      content: const Text('คุณแน่ใจหรือไม่ว่าต้องการลบโพสต์นี้?\nการกระทำนี้ไม่สามารถย้อนกลับได้', style: TextStyle(fontFamily: 'Line Seed Sans TH')),
+                      title: const Text(
+                        'ยืนยันการลบ',
+                        style: TextStyle(
+                          fontFamily: 'Line Seed Sans TH',
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      content: const Text(
+                        'คุณแน่ใจหรือไม่ว่าต้องการลบโพสต์นี้?\nการกระทำนี้ไม่สามารถย้อนกลับได้',
+                        style: TextStyle(fontFamily: 'Line Seed Sans TH'),
+                      ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(context, false),
-                          child: const Text('ยกเลิก', style: TextStyle(fontFamily: 'Line Seed Sans TH', color: Colors.grey)),
+                          child: const Text(
+                            'ยกเลิก',
+                            style: TextStyle(
+                              fontFamily: 'Line Seed Sans TH',
+                              color: Colors.grey,
+                            ),
+                          ),
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(context, true),
-                          style: TextButton.styleFrom(foregroundColor: Colors.red),
-                          child: const Text('ลบโพสต์', style: TextStyle(fontFamily: 'Line Seed Sans TH', fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                          ),
+                          child: const Text(
+                            'ลบโพสต์',
+                            style: TextStyle(
+                              fontFamily: 'Line Seed Sans TH',
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     );
@@ -348,14 +472,16 @@ class ItemDetailScreen extends StatelessWidget {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: isOwner ? Colors.red : const Color(0xFF005451),
+              backgroundColor:
+                  isOwner ? Colors.red.shade600 : const Color(0xFF005451),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
               elevation: 0,
             ),
-            child: Text(
-              isOwner ? 'ลบโพสต์' : (type == 'found' ? 'นี่คือของของฉัน' : 'ฉันเจอของชิ้นนี้'),
+            child: Text((status == 'found'
+                      ? 'นี่คือของของฉัน'
+                      : 'ฉันเจอของชิ้นนี้'),
               style: const TextStyle(
                 fontFamily: 'Line Seed Sans TH',
                 fontWeight: FontWeight.bold,
@@ -364,161 +490,6 @@ class ItemDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-        ),
-        if (!isOwner) ...[
-          const SizedBox(height: 12),
-          // Light Teal Button (Outlined)
-          SizedBox(
-            width: double.infinity,
-            height: 45,
-            child: OutlinedButton(
-            onPressed: () async {
-              if (user == null) return;
-
-              // Generate a unique Chat Room ID: ItemID_VisitorID
-              // (This separates chats per item per user)
-              final String itemId = data['id'] ?? 'unknown_item';
-              final String ownerId = data['uid'];
-              final String visitorId = user.uid;
-              final String chatRoomId = '${itemId}_$visitorId';
-
-              // Initialize Chat Room Metadata if it doesn't exist
-              final chatDocRef = FirebaseFirestore.instance.collection('chats').doc(chatRoomId);
-              final chatDoc = await chatDocRef.get();
-
-              if (!chatDoc.exists) {
-                await chatDocRef.set({
-                  'itemId': itemId,
-                  'ownerId': ownerId,
-                  'visitorId': visitorId,
-                  'participants': [ownerId, visitorId],
-                  'itemTitle': data['title'] ?? 'ไม่ระบุชื่อ',
-                  'itemImage': (data['images'] != null && (data['images'] as List).isNotEmpty)
-                      ? data['images'][0]
-                      : (data['imageUrl'] ?? ''),
-                  'lastMessage': '',
-                  'lastMessageTime': FieldValue.serverTimestamp(),
-                });
-              }
-
-              if (context.mounted) {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
-                  chatRoomId: chatRoomId,
-                  otherUserId: ownerId,
-                  itemName: data['title'] ?? 'Chat',
-                )));
-              }
-            },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFF006C68)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                type == 'found' ? 'แชทกับผู้ที่พบของชิ้นนี้' : 'แชทกับผู้ตามหา',
-                style: const TextStyle(
-                  fontFamily: 'Line Seed Sans TH',
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Color(0xFF006C68),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildOwnerChatList(BuildContext context) {
-    if (data['id'] == null) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 20),
-        const Text(
-          "รายการแชทที่เกี่ยวข้อง",
-          style: TextStyle(
-            fontFamily: 'Line Seed Sans TH',
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        const SizedBox(height: 10),
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('chats')
-              .where('itemId', isEqualTo: data['id'])
-              .snapshots(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'ยังไม่มีการติดต่อเข้ามา',
-                  style: TextStyle(color: Colors.grey, fontFamily: 'Line Seed Sans TH'),
-                  textAlign: TextAlign.center,
-                ),
-              );
-            }
-
-            return ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: snapshot.data!.docs.length,
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final chatDoc = snapshot.data!.docs[index];
-                final chatData = chatDoc.data() as Map<String, dynamic>;
-                final String visitorId = chatData['visitorId'] ?? '';
-                final String lastMessage = chatData['lastMessage'] ?? '-';
-
-                return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-                  leading: CircleAvatar(
-                    backgroundColor: const Color(0xFF006C68).withOpacity(0.1),
-                    child: const Icon(Icons.person, color: Color(0xFF006C68)),
-                  ),
-                  title: const Text(
-                    'ผู้ติดต่อ',
-                    style: TextStyle(
-                      fontFamily: 'Line Seed Sans TH',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  subtitle: Text(
-                    lastMessage,
-                    style: const TextStyle(
-                      fontFamily: 'Line Seed Sans TH',
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                  onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
-                      chatRoomId: chatDoc.id,
-                      otherUserId: visitorId,
-                      itemName: data['title'] ?? 'Chat',
-                    )));
-                  },
-                );
-              },
-            );
-          },
         ),
       ],
     );

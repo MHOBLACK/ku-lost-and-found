@@ -184,9 +184,9 @@ class _CheckItemPageState extends State<CheckItemPage> {
   Widget _buildListItem(BuildContext context, Map<String, dynamic> data) {
     final title = data['title'] ?? 'ไม่ระบุชื่อ';
     final description = data['description'] ?? '';
-    final timestamp = data['date'] as Timestamp?;
-    final type = data['type'] ?? 'lost';
-    final bool isLost = type == 'lost';
+    final timestamp = data['created_date'] as Timestamp?;
+    final status = data['status'] ?? 'lost';
+    final bool isLost = status == 'lost';
 
     Widget imageWidget;
     final List<dynamic> images = data['images'] ?? [];
@@ -242,7 +242,7 @@ class _CheckItemPageState extends State<CheckItemPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isLost ? 'ตามหา: $title' : 'พบ: $title',
+                  isLost ? '$title' : '$title',
                   style: const TextStyle(
                     fontFamily: 'Line Seed Sans TH',
                     fontWeight: FontWeight.bold,

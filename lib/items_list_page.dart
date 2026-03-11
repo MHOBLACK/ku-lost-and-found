@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'add_item_page.dart';
 import 'item_detail_screen.dart';
 
@@ -19,9 +20,8 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
     _tabController = TabController(length: 2, vsync: this);
   }
 
-  // This function handles the "Two Button" overlay when FAB is clicked
   void _showPostOptions(BuildContext context) {
-    final parentContext = context; // Capture the parent context for navigation
+    final parentContext = context;
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -51,11 +51,10 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
                       Icons.search_rounded,
                       const Color(0xFF006C68),
                       () {
-                        Navigator.pop(sheetContext); // Close the sheet
-                        // Navigate to the Add Item Page (Form)
+                        Navigator.pop(sheetContext);
                         Navigator.push(
                           parentContext,
-                          MaterialPageRoute(builder: (context) => const AddItemPage(itemType: 'lost')),
+                          MaterialPageRoute(builder: (context) => AddItemPage(itemType: 'lost')),
                         );
                       },
                     ),
@@ -65,14 +64,13 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
                     child: _buildPostButton(
                       sheetContext,
                       "แจ้งพบของ",
-                      Icons.check_circle_outline,
+                      Icons.warning_amber_rounded,
                       Colors.orange.shade700,
                       () {
                         Navigator.pop(sheetContext);
-                        // You can link this to a different page if needed
                         Navigator.push(
                           parentContext,
-                          MaterialPageRoute(builder: (context) => const AddItemPage(itemType: 'found')),
+                          MaterialPageRoute(builder: (context) => AddItemPage(itemType: 'found')),
                         );
                       },
                     ),
@@ -115,7 +113,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: Image.asset('assets/images/Logo.png', height: 40), // Keeping branding consistent
+        title: Image.asset('assets/images/Logo.png', height: 40),
         centerTitle: true,
         bottom: TabBar(
           controller: _tabController,
@@ -124,8 +122,8 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
           unselectedLabelColor: Colors.grey,
           labelStyle: const TextStyle(fontFamily: 'Line Seed Sans TH', fontWeight: FontWeight.bold),
           tabs: const [
-            Tab(text: 'ของหาย (Looking for)'),
-            Tab(text: 'ใจดีพบ (Found)'),
+            Tab(text: 'แจ้งของหาย (Lost)', icon: Icon(Icons.search_rounded)),
+            Tab(text: 'แจ้งพบของ (Found)', icon: Icon(Icons.warning_amber_rounded)),
           ],
         ),
       ),
@@ -145,11 +143,13 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
   }
 
   Widget _buildItemList({required bool isLost}) {
+    final String? userId = FirebaseAuth.instance.currentUser?.uid;
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('items')
-          .where('type', isEqualTo: isLost ? 'lost' : 'found')
-          .orderBy('date', descending: false)
+          .where('status', isEqualTo: isLost ? 'lost' : 'found')
+          .where('uid', isEqualTo: userId)
+          .orderBy('created_date', descending: false)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
@@ -170,11 +170,45 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
           itemCount: docs.length,
           separatorBuilder: (context, index) => const Divider(height: 24, color: Color(0xFFEEEEEE)),
           itemBuilder: (context, index) {
-            final data = docs[index].data() as Map<String, dynamic>;
+            final Map<String, dynamic> data = Map<String, dynamic>.from(
+              docs[index].data() as Map<String, dynamic>,
+            );
             data['id'] = docs[index].id;
+
             final title = data['title'] ?? 'ไม่ระบุชื่อ';
             final description = data['description'] ?? '';
-            final timestamp = data['date'] as Timestamp?;
+            final timestamp = data['created_date'] as Timestamp?;
+
+            final List<dynamic> images = data['images'] ?? [];
+            Widget imageWidget;
+
+            if (images.isNotEmpty &&
+                images.first.toString().startsWith('http')) {
+              imageWidget = Image.network(
+                images.first.toString(),
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.broken_image, color: Colors.grey),
+                  );
+                },
+              );
+            } else {
+              imageWidget = Image.asset(
+                'assets/images/No_Image_Available.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: const Icon(
+                      Icons.image_not_supported,
+                      color: Colors.grey,
+                    ),
+                  );
+                },
+              );
+            }
 
         return InkWell(
           onTap: () {
@@ -192,10 +226,10 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
               height: 90,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
-                image: const DecorationImage(
-                  image: AssetImage('assets/Checker.png'),
-                  fit: BoxFit.cover,
-                ),
+                color: Colors.grey[200],
+              ),
+              child: ClipRect(
+                child: imageWidget,
               ),
             ),
             const SizedBox(width: 12),
@@ -205,7 +239,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isLost ? 'ตามหา: $title' : 'พบ: $title',
+                    isLost ? '$title' : '$title',
                     style: const TextStyle(
                       fontFamily: 'Line Seed Sans TH',
                       fontWeight: FontWeight.bold,
