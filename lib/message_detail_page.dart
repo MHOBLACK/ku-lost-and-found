@@ -184,9 +184,7 @@ class _MessageDetailPageState extends State<MessageDetailPage> {
                       const Icon(Icons.person, size: 18, color: Colors.grey),
                       const SizedBox(width: 8),
                       Text(
-                        isReceived
-                            ? 'ผู้ส่ง: $senderName'
-                            : 'สถานะ: คุณเป็นผู้ส่ง',
+                        'ผู้ส่ง: $senderName',
                         style: TextStyle(
                           fontSize: 14,
                           color:
