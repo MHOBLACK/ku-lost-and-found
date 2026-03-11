@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'add_item_page.dart';
+import 'item_detail_screen.dart';
 
 class ItemsListScreen extends StatefulWidget {
   const ItemsListScreen({super.key});
@@ -20,12 +21,13 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
 
   // This function handles the "Two Button" overlay when FAB is clicked
   void _showPostOptions(BuildContext context) {
+    final parentContext = context; // Capture the parent context for navigation
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return Container(
           padding: const EdgeInsets.all(24),
           height: 200,
@@ -44,15 +46,15 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
                 children: [
                   Expanded(
                     child: _buildPostButton(
-                      context,
+                      sheetContext,
                       "ตามหาของหาย",
                       Icons.search_rounded,
                       const Color(0xFF006C68),
                       () {
-                        Navigator.pop(context); // Close the sheet
+                        Navigator.pop(sheetContext); // Close the sheet
                         // Navigate to the Add Item Page (Form)
                         Navigator.push(
-                          context,
+                          parentContext,
                           MaterialPageRoute(builder: (context) => const AddItemPage(itemType: 'lost')),
                         );
                       },
@@ -61,15 +63,15 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
                   const SizedBox(width: 16),
                   Expanded(
                     child: _buildPostButton(
-                      context,
+                      sheetContext,
                       "แจ้งพบของ",
                       Icons.check_circle_outline,
                       Colors.orange.shade700,
                       () {
-                        Navigator.pop(context);
+                        Navigator.pop(sheetContext);
                         // You can link this to a different page if needed
                         Navigator.push(
-                          context,
+                          parentContext,
                           MaterialPageRoute(builder: (context) => const AddItemPage(itemType: 'found')),
                         );
                       },
@@ -173,7 +175,14 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
             final description = data['description'] ?? '';
             final timestamp = data['date'] as Timestamp?;
 
-        return Row(
+        return InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ItemDetailScreen(data: data)),
+            );
+          },
+          child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Thumbnail
@@ -235,6 +244,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
               ),
             ),
           ],
+        ),
         );
       },
     );

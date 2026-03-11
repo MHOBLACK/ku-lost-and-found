@@ -20,6 +20,10 @@ dependencies:
   flutter_map: ^8.2.2
   latlong2: ^0.9.1
   cloud_firestore: ^6.1.2
+  googleapis: ^16.0.0
+  googleapis_auth: ^2.0.0
+  http: ^1.6.0
+  google_sign_in: ^6.3.0
 
 dev_dependencies:
   flutter_test:

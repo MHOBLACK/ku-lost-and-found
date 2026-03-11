@@ -2,6 +2,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'item_detail_screen.dart';
 import 'package:image_picker/image_picker.dart';
 // import 'package:camera/camera.dart';
 
@@ -225,17 +227,59 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('รายการแจ้งของฉัน', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        const Text('รายการแจ้งของฉัน',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 19),
-        _buildLostItemCard(),
-        const SizedBox(height: 10),
-        _buildLostItemCard(),
+        if (user != null)
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance.collection('items').where('uid', isEqualTo: user!.uid).snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(
+                    child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Text('คุณยังไม่มีรายการแจ้งของ'),
+                ));
+              }
+
+              final docs = snapshot.data!.docs;
+
+              // Sort documents by date on the client-side (newest first)
+              docs.sort((a, b) {
+                final dataA = a.data() as Map<String, dynamic>;
+                final dataB = b.data() as Map<String, dynamic>;
+                final Timestamp? dateA = dataA['date'];
+                final Timestamp? dateB = dataB['date'];
+                if (dateA == null || dateB == null) return 0;
+                return dateB.compareTo(dateA); // descending
+              });
+
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: docs.length,
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final data = docs[index].data() as Map<String, dynamic>;
+                  return _buildLostItemCard(data);
+                },
+              );
+            },
+          ),
         const SizedBox(height: 19),
         OutlinedButton(
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(double.infinity, 39),
             side: const BorderSide(color: Color(0xFF006C68)),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
           onPressed: () {},
           child: const Text('แสดงรายการทั้งหมด', style: TextStyle(color: Color(0xFF006C68), fontWeight: FontWeight.bold)),
@@ -244,43 +288,84 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildLostItemCard() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
+  String _formatDate(Timestamp? timestamp) {
+    if (timestamp == null) return '-';
+    final dt = timestamp.toDate();
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
+
+  Widget _buildLostItemCard(Map<String, dynamic> data) {
+    final String description =
+        data['description'] ?? data['title'] ?? 'ไม่มีรายละเอียด';
+    final Timestamp? date = data['date'];
+    final String type = data['type'] ?? 'lost';
+    final List<dynamic> images = data['images'] ?? [];
+    final String statusText = type == 'lost' ? 'กำลังตามหา' : 'พบแล้ว';
+
+    Widget imageWidget;
+    if (images.isNotEmpty && images.first.toString().startsWith('http')) {
+      imageWidget = Image.network(
+        images.first,
+        width: 100,
+        height: 100,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            width: 100,
+            height: 100,
             color: Colors.grey[200],
-            // image: const DecorationImage(image: AssetImage('assets/checker.png'), fit: BoxFit.cover),
+            child: const Icon(Icons.broken_image, color: Colors.grey),
+          );
+        },
+      );
+    } else {
+      imageWidget = Container(
+        width: 100,
+        height: 100,
+        color: Colors.grey[200],
+        child: const Icon(Icons.image_not_supported, color: Colors.grey),
+      );
+    }
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => ItemDetailScreen(data: data)),
+        );
+      },
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(borderRadius: BorderRadius.circular(8), child: imageWidget),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 10, color: Color(0xFF757575), height: 1.5)),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 4,
+                  children: [
+                    Text('สถานะ: $statusText',
+                        style: const TextStyle(
+                            fontSize: 12, color: Color(0xFFB3B3B3))),
+                    Text('วันที่แจ้ง: ${_formatDate(date)}',
+                        style: const TextStyle(
+                            fontSize: 12, color: Color(0xFFB3B3B3))),
+                  ],
+                ),
+              ],
+            ),
           ),
-          child: const Icon(Icons.image, color: Colors.grey),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus ex sapien vitae pellentesque...',
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 10, color: Color(0xFF757575), height: 1.5),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 10,
-                runSpacing: 4,
-                children: const [
-                  Text('สถานะ: Status', style: TextStyle(fontSize: 12, color: Color(0xFFB3B3B3))),
-                  Text('วันที่แจ้ง: dd/MM/yyyy', style: TextStyle(fontSize: 12, color: Color(0xFFB3B3B3))),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

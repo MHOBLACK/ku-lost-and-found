@@ -15,6 +15,9 @@ import 'package:flutter/foundation.dart'
 /// );
 /// ```
 class DefaultFirebaseOptions {
+  // Google Drive API Client ID (iOS)
+  static const String googleDriveClientId = '535809755024-f8jgiv8rel1lv933pls6o5h8364uhdic.apps.googleusercontent.com';
+
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
