@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'main.dart';
 // import 'package:image_picker/image_picker.dart';
 // import 'package:googleapis/drive/v3.dart' as drive;
 // import 'package:http/http.dart' as http;
@@ -182,7 +183,12 @@ class _AddItemPageState extends State<AddItemPage> {
       });
 
       if (mounted) {
-        Navigator.pop(context); // Close page on success
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => const BottomNavBar(initialIndex: 1),
+          ),
+          (Route<dynamic> route) => false,
+        );
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
