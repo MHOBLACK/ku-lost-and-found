@@ -210,7 +210,7 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
 
     return StreamBuilder<QuerySnapshot>(
       stream: query
-          .orderBy('created_date', descending: false)
+          .orderBy('created_date', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
