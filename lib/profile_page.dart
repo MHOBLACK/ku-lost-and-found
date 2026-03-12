@@ -1,13 +1,10 @@
 // * หน้าโปรไฟล์ผู้ใช้
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'item_detail_screen.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'inbox_page.dart'; // <-- เพิ่มบรรทัดนี้
-// import 'package:camera/camera.dart';
+import 'inbox_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -17,27 +14,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  File? _imageFile;
-  final ImagePicker _picker = ImagePicker();
   final User? user = FirebaseAuth.instance.currentUser;
-
-  // ฟังก์ชันเลือกภาพ (จากโค้ดของคุณ)
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final XFile? pickedFile = await _picker.pickImage(
-        source: source,
-        imageQuality: 80,
-        maxWidth: 1024,
-      );
-      if (pickedFile != null) {
-        setState(() {
-          _imageFile = File(pickedFile.path);
-        });
-      }
-    } catch (e) {
-      debugPrint('Error picking image: $e');
-    }
-  }
 
   // ฟังก์ชันแสดง Popup ยืนยันการออกจากระบบ
   Future<void> _showLogoutConfirmation(BuildContext context) async {
@@ -92,43 +69,11 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  // แสดง BottomSheet เลือกแหล่งรูปภาพ
-  void _showImageSourceActionSheet() {
-    showModalBottomSheet(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('เลือกจาก Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('ถ่ายภาพ'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    // ตรวจสอบว่าจะใช้รูปจากไหน: รูปที่เลือกใหม่ -> รูปจาก Google -> หรือไอคอนว่าง
+    // ใช้รูปจาก Google Account (ถ้ามี)
     ImageProvider? imageProvider;
-    if (_imageFile != null) {
-      imageProvider = FileImage(_imageFile!);
-    } else if (user?.photoURL != null) {
+    if (user?.photoURL != null) {
       imageProvider = NetworkImage(user!.photoURL!);
     }
 
@@ -181,36 +126,13 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget _buildProfileHeader(ImageProvider? imageProvider) {
     return Column(
       children: [
-        GestureDetector(
-          onTap: _showImageSourceActionSheet,
-          child: Stack(
-            children: [
-              CircleAvatar(
-                radius: 80,
-                backgroundColor: Colors.grey.shade300,
-                backgroundImage: imageProvider,
-                child: imageProvider == null
-                    ? const Icon(Icons.person, size: 80, color: Colors.white)
-                    : null,
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF006C68),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-              ),
-            ],
-          ),
+        CircleAvatar(
+          radius: 80,
+          backgroundColor: Colors.grey.shade300,
+          backgroundImage: imageProvider,
+          child: imageProvider == null
+              ? const Icon(Icons.person, size: 80, color: Colors.white)
+              : null,
         ),
         const SizedBox(height: 20),
         Text(
@@ -232,12 +154,10 @@ class _ProfilePageState extends State<ProfilePage> {
           ? FirebaseFirestore.instance.collection('users').doc(user!.uid).snapshots()
           : null,
       builder: (context, snapshot) {
-        // int level = 1;
         int points = 0;
 
         if (snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
           final data = snapshot.data!.data() as Map<String, dynamic>;
-          // level = data['level'] ?? 1;
           points = data['points'] ?? 0;
         }
 
@@ -271,7 +191,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  
   Widget _buildInboxSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,72 +218,10 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _buildLostItemsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('รายการแจ้งของฉัน',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 19),
-        if (user != null)
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('items').where('uid', isEqualTo: user!.uid).snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(child: Text('เกิดข้อผิดพลาด: ${snapshot.error}'));
-              }
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(
-                    child: Padding(
-                  padding: EdgeInsets.all(20.0),
-                  child: Text('คุณยังไม่มีรายการแจ้งของ'),
-                ));
-              }
-
-              final docs = snapshot.data!.docs;
-
-              // Sort documents by date on the client-side (newest first)
-              docs.sort((a, b) {
-                final dataA = a.data() as Map<String, dynamic>;
-                final dataB = b.data() as Map<String, dynamic>;
-                final Timestamp? dateA = dataA['date'];
-                final Timestamp? dateB = dataB['date'];
-                if (dateA == null || dateB == null) return 0;
-                return dateB.compareTo(dateA); // descending
-              });
-
-              return ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: docs.length,
-                separatorBuilder: (context, index) =>
-                    const Divider(height: 24, color: Color(0xFFEEEEEE)),
-                itemBuilder: (context, index) {
-                  final data = docs[index].data() as Map<String, dynamic>;
-                  data['id'] = docs[index].id;
-                  return _buildLostItemCard(data);
-                },
-              );
-            },
-          ),
-        const SizedBox(height: 19),
-        OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            minimumSize: const Size(double.infinity, 39),
-            side: const BorderSide(color: Color(0xFF006C68)),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-          onPressed: () {},
-          child: const Text('แสดงรายการทั้งหมด', style: TextStyle(color: Color(0xFF006C68), fontWeight: FontWeight.bold)),
-        ),
-      ],
-    );
-  }
-
+  /*
+  Widget _buildLostItemsSection() { ... }
+  */
+  
   String _getTimeAgo(Timestamp? timestamp) {
     if (timestamp == null) return '-';
     final dt = timestamp.toDate();
