@@ -180,37 +180,57 @@ class _MessageDetailPageState extends State<MessageDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start, // ปรับให้อยู่ด้านบนเวลาข้อความขึ้นบรรทัดใหม่
                     children: [
-                      const Icon(Icons.person, size: 18, color: Colors.grey),
+                      const Padding(
+                        padding: EdgeInsets.only(
+                          top: 2.0,
+                        ), // ดันไอคอนลงมานิดหน่อยให้ตรงกับบรรทัดแรก
+                        child: Icon(Icons.person, size: 18, color: Colors.grey),
+                      ),
                       const SizedBox(width: 8),
-                      Text(
-                        'ผู้ส่ง: $senderName',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color:
-                              isReceived
-                                  ? const Color(0xFF006C68)
-                                  : Colors.blue.shade700,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'Line Seed Sans TH',
+                      Expanded(
+                        // เพิ่ม Expanded ครอบ Text ไว้
+                        child: Text(
+                          'ผู้ส่ง: $senderName',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color:
+                                isReceived
+                                    ? const Color(0xFF006C68)
+                                    : Colors.blue.shade700,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Line Seed Sans TH',
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Row(
+                    crossAxisAlignment:
+                        CrossAxisAlignment
+                            .start, // ปรับให้อยู่ด้านบนเวลาข้อความขึ้นบรรทัดใหม่
                     children: [
-                      const Icon(
-                        Icons.person_outline,
-                        size: 18,
-                        color: Colors.grey,
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2.0),
+                        child: Icon(
+                          Icons.person_outline,
+                          size: 18,
+                          color: Colors.grey,
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'ผู้รับ: $receiverName',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontFamily: 'Line Seed Sans TH',
+                      Expanded(
+                        // เพิ่ม Expanded ครอบ Text ไว้
+                        child: Text(
+                          'ผู้รับ: $receiverName',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontFamily: 'Line Seed Sans TH',
+                          ),
                         ),
                       ),
                     ],
@@ -219,10 +239,13 @@ class _MessageDetailPageState extends State<MessageDetailPage> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(
-                        Icons.phone_in_talk,
-                        size: 18,
-                        color: Color(0xFF006C68),
+                      const Padding(
+                        padding: EdgeInsets.only(top: 2.0),
+                        child: Icon(
+                          Icons.phone_in_talk,
+                          size: 18,
+                          color: Color(0xFF006C68),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
