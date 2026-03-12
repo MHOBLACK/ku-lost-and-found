@@ -96,9 +96,9 @@ class ChatDetailPage extends StatelessWidget {
     String visitorId,
     Map<String, dynamic> itemData,
   ) {
-    String status = itemData['status'] ?? 'lost';
-    bool isCompleted = status.contains('completed');
-    bool isOngoing = status.contains('ongoing');
+    String progress = itemData['progress'] ?? '';
+    bool isCompleted = progress == 'completed';
+    bool isOngoing = progress == 'pending';
 
     // Phase 3: Completed
     if (isCompleted) {
@@ -600,13 +600,8 @@ class ChatDetailPage extends StatelessWidget {
         time.minute,
       );
 
-      String newStatus = currentStatus;
-      if (!currentStatus.contains('ongoing')) {
-        newStatus = '$currentStatus ongoing';
-      }
-
       Map<String, dynamic> updateData = {
-        'status': newStatus,
+        'progress': 'pending',
         'appointment_location': location,
         'appointment_time': Timestamp.fromDate(dt),
       };
@@ -674,22 +669,19 @@ class ChatDetailPage extends StatelessWidget {
     String ownerId = itemData['uid'];
 
     String targetUserId;
-    String completeStatus;
 
     if (status.startsWith('lost')) {
       // Case: Lost Item. Owner lost it. Visitor found it. -> Visitor gets points.
       targetUserId = visitorId;
-      completeStatus = 'lost completed';
     } else {
       // Case: Found Item. Owner found it. Visitor lost it. -> Owner gets points (for being a good citizen).
       targetUserId = ownerId;
-      completeStatus = 'found completed';
     }
 
     try {
-      // 1. Update Status
+      // 1. Update Progress
       await FirebaseFirestore.instance.collection('items').doc(itemId).update({
-        'status': completeStatus,
+        'progress': 'completed',
       });
 
       // 2. Give Points (Assuming 'users' collection has 'points' field)
