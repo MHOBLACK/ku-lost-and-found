@@ -690,7 +690,7 @@ class ChatDetailPage extends StatelessWidget {
             .collection('users')
             .doc(targetUserId)
             .update({
-              'points': FieldValue.increment(10), // Give 10 points
+              'points': FieldValue.increment(1), // Give 1 point
             })
             .catchError(
               (e) => debugPrint("Error giving points: $e"),

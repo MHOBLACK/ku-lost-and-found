@@ -572,72 +572,6 @@ class ItemDetailScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 45,
-              child: OutlinedButton(
-                onPressed: () async {
-                  final itemId = currentData['id'];
-                  final ownerId = currentData['uid'];
-                  final visitorId = user!.uid;
-                  if (itemId == null) return;
-
-                  final String chatRoomId = '${itemId}_$visitorId';
-                  final chatDocRef = FirebaseFirestore.instance
-                      .collection('chats')
-                      .doc(chatRoomId);
-                  final chatDoc = await chatDocRef.get();
-
-                  if (!chatDoc.exists) {
-                    await chatDocRef.set({
-                      'itemId': itemId,
-                      'ownerId': ownerId,
-                      'visitorId': visitorId,
-                      'participants': [ownerId, visitorId],
-                      'itemTitle': currentData['title'] ?? 'ไม่ระบุชื่อ',
-                      'itemImage':
-                          (currentData['images'] != null &&
-                                  (currentData['images'] as List).isNotEmpty)
-                              ? currentData['images'][0]
-                              : (currentData['imageUrl'] ?? ''),
-                      'lastMessage': '',
-                      'lastMessageTime': FieldValue.serverTimestamp(),
-                    });
-                  }
-
-                  if (context.mounted) {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (_) => ChatScreen(
-                              chatRoomId: chatRoomId,
-                              otherUserId: ownerId,
-                              itemName: currentData['title'] ?? 'Chat',
-                            ),
-                      ),
-                    );
-                  }
-                },
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFF006C68)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: Text(
-                  status == 'found'
-                      ? 'แชทกับผู้ที่พบของชิ้นนี้'
-                      : 'แชทกับผู้ตามหา',
-                  style: const TextStyle(
-                    fontFamily: 'Line Seed Sans TH',
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: Color(0xFF006C68),
-                  ),
-                ),
-              ),
-            ),
           ] else ...[
             Container(
               width: double.infinity,
@@ -657,7 +591,76 @@ class ItemDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
           ],
+
+          SizedBox(
+            width: double.infinity,
+            height: 45,
+            child: OutlinedButton(
+              onPressed: () async {
+                if (user == null) return;
+                final itemId = currentData['id'];
+                final ownerId = currentData['uid'];
+                final visitorId = user.uid;
+                if (itemId == null) return;
+
+                final String chatRoomId = '${itemId}_$visitorId';
+                final chatDocRef = FirebaseFirestore.instance
+                    .collection('chats')
+                    .doc(chatRoomId);
+                final chatDoc = await chatDocRef.get();
+
+                if (!chatDoc.exists) {
+                  await chatDocRef.set({
+                    'itemId': itemId,
+                    'ownerId': ownerId,
+                    'visitorId': visitorId,
+                    'participants': [ownerId, visitorId],
+                    'itemTitle': currentData['title'] ?? 'ไม่ระบุชื่อ',
+                    'itemImage':
+                        (currentData['images'] != null &&
+                                (currentData['images'] as List).isNotEmpty)
+                            ? currentData['images'][0]
+                            : (currentData['imageUrl'] ?? ''),
+                    'lastMessage': '',
+                    'lastMessageTime': FieldValue.serverTimestamp(),
+                  });
+                }
+
+                if (context.mounted) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (_) => ChatScreen(
+                            chatRoomId: chatRoomId,
+                            otherUserId: ownerId,
+                            itemName: currentData['title'] ?? 'Chat',
+                          ),
+                    ),
+                  );
+                }
+              },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFF006C68)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                status == 'found'
+                    ? 'แชทกับผู้ที่พบของชิ้นนี้'
+                    : 'แชทกับผู้ตามหา',
+                style: const TextStyle(
+                  fontFamily: 'Line Seed Sans TH',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: Color(0xFF006C68),
+                ),
+              ),
+            ),
+          ),
         ],
       ],
     );

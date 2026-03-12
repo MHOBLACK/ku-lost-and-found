@@ -13,6 +13,7 @@ class ItemsListScreen extends StatefulWidget {
 
 class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderStateMixin {
   late TabController _tabController;
+  bool _showAllPosts = false;
 
   @override
   void initState() {
@@ -106,6 +107,57 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
     );
   }
 
+  void _showFilterOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'ตัวกรองการแสดงผล',
+                style: TextStyle(
+                  fontFamily: 'Line Seed Sans TH',
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.public, color: Color(0xFF006C68)),
+                title: const Text('โพสต์ทั้งหมด', style: TextStyle(fontFamily: 'Line Seed Sans TH')),
+                trailing: _showAllPosts ? const Icon(Icons.check, color: Color(0xFF006C68)) : null,
+                onTap: () {
+                  setState(() {
+                    _showAllPosts = true;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.person, color: Color(0xFF006C68)),
+                title: const Text('โพสต์ของฉัน', style: TextStyle(fontFamily: 'Line Seed Sans TH')),
+                trailing: !_showAllPosts ? const Icon(Icons.check, color: Color(0xFF006C68)) : null,
+                onTap: () {
+                  setState(() {
+                    _showAllPosts = false;
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -113,6 +165,10 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.filter_list, color: Color(0xFF006C68)),
+          onPressed: _showFilterOptions,
+        ),
         title: Image.asset('assets/images/Logo.png', height: 40),
         centerTitle: true,
         bottom: TabBar(
@@ -144,11 +200,16 @@ class _ItemsListScreenState extends State<ItemsListScreen> with TickerProviderSt
 
   Widget _buildItemList({required bool isLost}) {
     final String? userId = FirebaseAuth.instance.currentUser?.uid;
+    Query query = FirebaseFirestore.instance
+        .collection('items')
+        .where('status', isEqualTo: isLost ? 'lost' : 'found');
+
+    if (!_showAllPosts) {
+      query = query.where('uid', isEqualTo: userId);
+    }
+
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('items')
-          .where('status', isEqualTo: isLost ? 'lost' : 'found')
-          .where('uid', isEqualTo: userId)
+      stream: query
           .orderBy('created_date', descending: false)
           .snapshots(),
       builder: (context, snapshot) {
