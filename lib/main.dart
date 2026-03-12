@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 
 import 'login_page.dart';
-import 'home_page.dart';
+import 'home_page.dart';  
 import 'items_list_page.dart';
 import 'check_item_page.dart';
 import 'profile_page.dart';
@@ -57,15 +57,10 @@ class _BottomNavBarState extends State<BottomNavBar> {
     _selectedIndex = widget.initialIndex;
   }
 
-  // สีหลัก (เขียวเข้ม)
-  // final Color _primaryColor = const Color(0xFF006C68);
-
-  // รายการหน้าต่างๆ
   final List<Widget> pageOptions = const [
     HomePage(),
     
-    ItemsListScreen(), // เปลี่ยนจาก SearchPage เป็นหน้ารายการของหายที่มี Tab
-    // AddItemPage(), // หน้านี้จะไม่ถูกแสดงจริง เพราะปุ่มตรงกลางเป็น FAB
+    ItemsListScreen(),
     CheckItemPage(),
     ProfilePage(),
   ];
