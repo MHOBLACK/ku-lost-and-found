@@ -124,7 +124,8 @@ class ItemDetailScreen extends StatelessWidget {
                       _buildMapSection(location),
                       const SizedBox(height: 20),
                       _buildActionButtons(context, currentData),
-                      if (FirebaseAuth.instance.currentUser?.uid == currentData['uid'])
+                      if (FirebaseAuth.instance.currentUser?.uid ==
+                          currentData['uid'])
                         _buildOwnerChatList(context, currentData),
                       const SizedBox(height: 30),
                     ],
@@ -229,16 +230,29 @@ class ItemDetailScreen extends StatelessWidget {
             itemCount: images.length,
             separatorBuilder: (context, index) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
-              return Container(
-                width: 300,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  image: DecorationImage(
-                    image:
-                        images[index].toString().startsWith('http')
-                            ? NetworkImage(images[index])
-                            : AssetImage(images[index]) as ImageProvider,
-                    fit: BoxFit.cover,
+              final String imagePath = images[index].toString();
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) =>
+                              DetailFullScreenImageView(imagePath: imagePath),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 300,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    image: DecorationImage(
+                      image:
+                          imagePath.startsWith('http')
+                              ? NetworkImage(imagePath)
+                              : AssetImage(imagePath) as ImageProvider,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               );
@@ -285,8 +299,9 @@ class ItemDetailScreen extends StatelessWidget {
                   markers: [
                     Marker(
                       point: latLng,
-                      width: 80,
-                      height: 80,
+                      width: 39,
+                      height: 39,
+                      alignment: Alignment.topCenter,
                       child: const Icon(
                         Icons.location_on,
                         color: Colors.red,
@@ -568,7 +583,9 @@ class ItemDetailScreen extends StatelessWidget {
                   if (itemId == null) return;
 
                   final String chatRoomId = '${itemId}_$visitorId';
-                  final chatDocRef = FirebaseFirestore.instance.collection('chats').doc(chatRoomId);
+                  final chatDocRef = FirebaseFirestore.instance
+                      .collection('chats')
+                      .doc(chatRoomId);
                   final chatDoc = await chatDocRef.get();
 
                   if (!chatDoc.exists) {
@@ -578,28 +595,40 @@ class ItemDetailScreen extends StatelessWidget {
                       'visitorId': visitorId,
                       'participants': [ownerId, visitorId],
                       'itemTitle': currentData['title'] ?? 'ไม่ระบุชื่อ',
-                      'itemImage': (currentData['images'] != null && (currentData['images'] as List).isNotEmpty)
-                          ? currentData['images'][0]
-                          : (currentData['imageUrl'] ?? ''),
+                      'itemImage':
+                          (currentData['images'] != null &&
+                                  (currentData['images'] as List).isNotEmpty)
+                              ? currentData['images'][0]
+                              : (currentData['imageUrl'] ?? ''),
                       'lastMessage': '',
                       'lastMessageTime': FieldValue.serverTimestamp(),
                     });
                   }
 
                   if (context.mounted) {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
-                      chatRoomId: chatRoomId,
-                      otherUserId: ownerId,
-                      itemName: currentData['title'] ?? 'Chat',
-                    )));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) => ChatScreen(
+                              chatRoomId: chatRoomId,
+                              otherUserId: ownerId,
+                              itemName: currentData['title'] ?? 'Chat',
+                            ),
+                      ),
+                    );
                   }
                 },
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Color(0xFF006C68)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: Text(
-                  status == 'found' ? 'แชทกับผู้ที่พบของชิ้นนี้' : 'แชทกับผู้ตามหา',
+                  status == 'found'
+                      ? 'แชทกับผู้ที่พบของชิ้นนี้'
+                      : 'แชทกับผู้ตามหา',
                   style: const TextStyle(
                     fontFamily: 'Line Seed Sans TH',
                     fontWeight: FontWeight.bold,
@@ -634,7 +663,10 @@ class ItemDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOwnerChatList(BuildContext context, Map<String, dynamic> currentData) {
+  Widget _buildOwnerChatList(
+    BuildContext context,
+    Map<String, dynamic> currentData,
+  ) {
     if (currentData['id'] == null) return const SizedBox.shrink();
 
     return Column(
@@ -651,10 +683,11 @@ class ItemDetailScreen extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('chats')
-              .where('itemId', isEqualTo: currentData['id'])
-              .snapshots(),
+          stream:
+              FirebaseFirestore.instance
+                  .collection('chats')
+                  .where('itemId', isEqualTo: currentData['id'])
+                  .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -663,8 +696,18 @@ class ItemDetailScreen extends StatelessWidget {
               return Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
-                child: const Text('ยังไม่มีการติดต่อเข้ามา', style: TextStyle(color: Colors.grey, fontFamily: 'Line Seed Sans TH'), textAlign: TextAlign.center),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'ยังไม่มีการติดต่อเข้ามา',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontFamily: 'Line Seed Sans TH',
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               );
             }
 
@@ -680,17 +723,49 @@ class ItemDetailScreen extends StatelessWidget {
                 final String lastMessage = chatData['lastMessage'] ?? '-';
 
                 return ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-                  leading: CircleAvatar(backgroundColor: const Color(0xFF006C68).withOpacity(0.1), child: const Icon(Icons.person, color: Color(0xFF006C68))),
-                  title: const Text('ผู้ติดต่อ', style: TextStyle(fontFamily: 'Line Seed Sans TH', fontWeight: FontWeight.bold, fontSize: 14)),
-                  subtitle: Text(lastMessage, style: const TextStyle(fontFamily: 'Line Seed Sans TH', fontSize: 12, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
-                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 0,
+                    vertical: 4,
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: const Color(0xFF006C68).withOpacity(0.1),
+                    child: const Icon(Icons.person, color: Color(0xFF006C68)),
+                  ),
+                  title: const Text(
+                    'ผู้ติดต่อ',
+                    style: TextStyle(
+                      fontFamily: 'Line Seed Sans TH',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  subtitle: Text(
+                    lastMessage,
+                    style: const TextStyle(
+                      fontFamily: 'Line Seed Sans TH',
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
-                      chatRoomId: chatDoc.id,
-                      otherUserId: visitorId,
-                      itemName: currentData['title'] ?? 'Chat',
-                    )));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) => ChatScreen(
+                              chatRoomId: chatDoc.id,
+                              otherUserId: visitorId,
+                              itemName: currentData['title'] ?? 'Chat',
+                            ),
+                      ),
+                    );
                   },
                 );
               },
@@ -698,6 +773,30 @@ class ItemDetailScreen extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+class DetailFullScreenImageView extends StatelessWidget {
+  final String imagePath;
+  const DetailFullScreenImageView({super.key, required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: Center(
+        child: InteractiveViewer(
+          child:
+              imagePath.startsWith('http')
+                  ? Image.network(imagePath)
+                  : Image.asset(imagePath),
+        ),
+      ),
     );
   }
 }

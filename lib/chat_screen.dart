@@ -43,12 +43,13 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _fetchCurrentLocation();
-    _messagesStream = FirebaseFirestore.instance
-        .collection('chats')
-        .doc(widget.chatRoomId)
-        .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .snapshots();
+    _messagesStream =
+        FirebaseFirestore.instance
+            .collection('chats')
+            .doc(widget.chatRoomId)
+            .collection('messages')
+            .orderBy('timestamp', descending: true)
+            .snapshots();
   }
 
   Future<void> _fetchCurrentLocation() async {
@@ -163,7 +164,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   children: [
                     TileLayer(
-                      urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.lostNFoundTest',
                     ),
                     MarkerLayer(
@@ -184,10 +186,14 @@ class _ChatScreenState extends State<ChatScreen> {
                         // Selected Pin
                         Marker(
                           point: tempLocation,
-                          width: 40,
-                          height: 40,
-                          child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-                          alignment: Alignment.bottomCenter,
+                          width: 39,
+                          height: 39,
+                          alignment: Alignment.topCenter,
+                          child: const Icon(
+                            Icons.location_on,
+                            color: Colors.red,
+                            size: 40,
+                          ),
                         ),
                       ],
                     ),
@@ -439,10 +445,10 @@ class _ChatScreenState extends State<ChatScreen> {
     List<Marker> markers = [
       Marker(
         point: LatLng(pinLocation.latitude, pinLocation.longitude),
-        width: 40,
-        height: 40,
+        width: 39,
+        height: 39,
+        alignment: Alignment.topCenter,
         child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-        alignment: Alignment.bottomCenter,
       ),
     ];
 
@@ -471,10 +477,14 @@ class _ChatScreenState extends State<ChatScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => FullScreenMapView(
-              pinLocation: LatLng(pinLocation.latitude, pinLocation.longitude),
-              userPosition: _currentUserPosition,
-            ),
+            builder:
+                (context) => FullScreenMapView(
+                  pinLocation: LatLng(
+                    pinLocation.latitude,
+                    pinLocation.longitude,
+                  ),
+                  userPosition: _currentUserPosition,
+                ),
           ),
         );
       },
@@ -490,7 +500,10 @@ class _ChatScreenState extends State<ChatScreen> {
           borderRadius: BorderRadius.circular(8),
           child: FlutterMap(
             options: MapOptions(
-              initialCenter: LatLng(pinLocation.latitude, pinLocation.longitude),
+              initialCenter: LatLng(
+                pinLocation.latitude,
+                pinLocation.longitude,
+              ),
               initialZoom: 13.0,
               interactionOptions: const InteractionOptions(
                 flags: InteractiveFlag.none,
@@ -522,7 +535,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => FullScreenImageView(imageUrl: imgUrl.toString()),
+                      builder:
+                          (context) =>
+                              FullScreenImageView(imageUrl: imgUrl.toString()),
                     ),
                   );
                 },
@@ -533,7 +548,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     width: 100,
                     height: 100,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+                    errorBuilder:
+                        (_, __, ___) => const Icon(Icons.broken_image),
                   ),
                 ),
               );
@@ -661,11 +677,7 @@ class FullScreenImageView extends StatelessWidget {
         backgroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Center(
-        child: InteractiveViewer(
-          child: Image.network(imageUrl),
-        ),
-      ),
+      body: Center(child: InteractiveViewer(child: Image.network(imageUrl))),
     );
   }
 }
@@ -685,10 +697,10 @@ class FullScreenMapView extends StatelessWidget {
     List<Marker> markers = [
       Marker(
         point: pinLocation,
-        width: 40,
-        height: 40,
+        width: 39,
+        height: 39,
+        alignment: Alignment.topCenter,
         child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-        alignment: Alignment.bottomCenter,
       ),
     ];
 
@@ -719,10 +731,7 @@ class FullScreenMapView extends StatelessWidget {
         foregroundColor: Colors.white,
       ),
       body: FlutterMap(
-        options: MapOptions(
-          initialCenter: pinLocation,
-          initialZoom: 15.0,
-        ),
+        options: MapOptions(initialCenter: pinLocation, initialZoom: 15.0),
         children: [
           TileLayer(
             urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',

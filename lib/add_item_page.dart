@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -37,10 +38,43 @@ class _AddItemPageState extends State<AddItemPage> {
 
   // พิกัดเริ่มต้น (ม.เกษตร บางเขน)
   LatLng _selectedLocation = const LatLng(13.8476, 100.5696);
+  final MapController _mapController = MapController();
+  Position? _currentUserPosition;
 
   final ImagePicker _picker = ImagePicker();
   List<File> _imageFiles = [];
   String _uploadStatus = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _determinePosition();
+  }
+
+  Future<void> _determinePosition() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) return;
+      }
+      if (permission == LocationPermission.deniedForever) return;
+
+      Position position = await Geolocator.getCurrentPosition();
+      if (mounted) {
+        setState(() {
+          _currentUserPosition = position;
+          _selectedLocation = LatLng(position.latitude, position.longitude);
+        });
+        _mapController.move(_selectedLocation, 15.0);
+      }
+    } catch (e) {
+      debugPrint("Error getting location: $e");
+    }
+  }
 
   @override
   void dispose() {
@@ -52,13 +86,50 @@ class _AddItemPageState extends State<AddItemPage> {
     super.dispose();
   }
 
-  Future<void> _pickImages() async {
+  Future<void> _pickFromGallery() async {
     final List<XFile> selectedImages = await _picker.pickMultiImage();
     if (selectedImages.isNotEmpty) {
       setState(() {
         _imageFiles.addAll(selectedImages.map((e) => File(e.path)));
       });
     }
+  }
+
+  Future<void> _pickFromCamera() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+    if (image != null) {
+      setState(() {
+        _imageFiles.add(File(image.path));
+      });
+    }
+  }
+
+  void _showImageSourceOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('เลือกจากคลังภาพ'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickFromGallery();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('ถ่ายรูป'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _pickFromCamera();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<List<String>> _uploadImagesToCloud() async {
@@ -285,7 +356,7 @@ class _AddItemPageState extends State<AddItemPage> {
 
         // ปุ่มกดเลือกรูป
         OutlinedButton.icon(
-          onPressed: _pickImages,
+          onPressed: _showImageSourceOptions,
           icon: const Icon(Icons.add_photo_alternate, color: Color(0xFF006C68)),
           label: const Text(
             'เพิ่มรูปภาพ',
@@ -371,6 +442,7 @@ class _AddItemPageState extends State<AddItemPage> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: FlutterMap(
+              mapController: _mapController,
               options: MapOptions(
                 initialCenter: _selectedLocation,
                 initialZoom: 15.0,
@@ -385,10 +457,27 @@ class _AddItemPageState extends State<AddItemPage> {
                 ),
                 MarkerLayer(
                   markers: [
+                    if (_currentUserPosition != null)
+                      Marker(
+                        point: LatLng(
+                          _currentUserPosition!.latitude,
+                          _currentUserPosition!.longitude,
+                        ),
+                        width: 20,
+                        height: 20,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.7),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                        ),
+                      ),
                     Marker(
                       point: _selectedLocation,
-                      width: 80,
-                      height: 80,
+                      width: 39,
+                      height: 39,
+                      alignment: Alignment.topCenter,
                       child: const Icon(
                         Icons.location_on,
                         color: Colors.red,
