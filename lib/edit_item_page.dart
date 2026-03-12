@@ -22,8 +22,10 @@ class _EditItemPageState extends State<EditItemPage> {
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _locationDetailController = TextEditingController();
-  final TextEditingController _contactsDetailController = TextEditingController();
+  final TextEditingController _locationDetailController =
+      TextEditingController();
+  final TextEditingController _contactsDetailController =
+      TextEditingController();
   final TextEditingController _dropoffPointController = TextEditingController();
 
   bool _isDroppedOff = false;
@@ -48,18 +50,23 @@ class _EditItemPageState extends State<EditItemPage> {
   Future<List<String>> _uploadNewImagesToCloud() async {
     List<String> uploadedUrls = [];
     String cloudName = "dq7hiqpfh"; // ใช้ค่าเดียวกับหน้า Add
-    String uploadPreset = "ku-lost-and-found"; 
+    String uploadPreset = "ku-lost-and-found";
 
     for (int i = 0; i < _newImageFiles.length; i++) {
       setState(() {
-        _uploadStatus = 'กำลังอัปโหลดรูปใหม่ ${i + 1}/${_newImageFiles.length}...';
+        _uploadStatus =
+            'กำลังอัปโหลดรูปใหม่ ${i + 1}/${_newImageFiles.length}...';
       });
 
       try {
-        var uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+        var uri = Uri.parse(
+          'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+        );
         var request = http.MultipartRequest('POST', uri);
         request.fields['upload_preset'] = uploadPreset;
-        request.files.add(await http.MultipartFile.fromPath('file', _newImageFiles[i].path));
+        request.files.add(
+          await http.MultipartFile.fromPath('file', _newImageFiles[i].path),
+        );
 
         var response = await request.send();
         if (response.statusCode == 200) {
@@ -73,8 +80,6 @@ class _EditItemPageState extends State<EditItemPage> {
     }
     return uploadedUrls;
   }
-
-  
 
   @override
   void initState() {
@@ -98,7 +103,8 @@ class _EditItemPageState extends State<EditItemPage> {
 
     if (widget.data['images'] != null && widget.data['images'] is List) {
       // แปลง List<dynamic> เป็น List<String> อย่างปลอดภัย
-      _existingImages = (widget.data['images'] as List).map((e) => e.toString()).toList();
+      _existingImages =
+          (widget.data['images'] as List).map((e) => e.toString()).toList();
     } else if (widget.data['imageUrl'] != null) {
       // รองรับกรณีข้อมูลเก่ามีแค่รูปเดียว
       _existingImages = [widget.data['imageUrl'].toString()];
@@ -129,7 +135,6 @@ class _EditItemPageState extends State<EditItemPage> {
     setState(() => _isSubmitting = true);
 
     try {
-
       List<String> finalImageUrls = List.from(_existingImages);
 
       if (_newImageFiles.isNotEmpty) {
@@ -459,8 +464,9 @@ class _EditItemPageState extends State<EditItemPage> {
                   markers: [
                     Marker(
                       point: _selectedLocation,
-                      width: 80,
-                      height: 80,
+                      width: 39,
+                      height: 39,
+                      alignment: Alignment.topCenter,
                       child: const Icon(
                         Icons.location_on,
                         color: Colors.red,
@@ -498,7 +504,8 @@ class _EditItemPageState extends State<EditItemPage> {
                 if (_itemType == 'found') _buildFoundSpecificFields(),
                 _buildImageEditSection(),
                 _buildMapSection(),
-                if (_uploadStatus.isNotEmpty) Padding(
+                if (_uploadStatus.isNotEmpty)
+                  Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: Text(
                       _uploadStatus,
