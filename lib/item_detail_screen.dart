@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'edit_item_page.dart';
 import 'contact_page.dart';
+import 'chat_screen.dart';
 
 class ItemDetailScreen extends StatelessWidget {
   final Map<String, dynamic> data;
@@ -123,6 +124,8 @@ class ItemDetailScreen extends StatelessWidget {
                       _buildMapSection(location),
                       const SizedBox(height: 20),
                       _buildActionButtons(context, currentData),
+                      if (FirebaseAuth.instance.currentUser?.uid == currentData['uid'])
+                        _buildOwnerChatList(context, currentData),
                       const SizedBox(height: 30),
                     ],
                   ),
@@ -553,6 +556,59 @@ class ItemDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 45,
+              child: OutlinedButton(
+                onPressed: () async {
+                  final itemId = currentData['id'];
+                  final ownerId = currentData['uid'];
+                  final visitorId = user!.uid;
+                  if (itemId == null) return;
+
+                  final String chatRoomId = '${itemId}_$visitorId';
+                  final chatDocRef = FirebaseFirestore.instance.collection('chats').doc(chatRoomId);
+                  final chatDoc = await chatDocRef.get();
+
+                  if (!chatDoc.exists) {
+                    await chatDocRef.set({
+                      'itemId': itemId,
+                      'ownerId': ownerId,
+                      'visitorId': visitorId,
+                      'participants': [ownerId, visitorId],
+                      'itemTitle': currentData['title'] ?? 'ไม่ระบุชื่อ',
+                      'itemImage': (currentData['images'] != null && (currentData['images'] as List).isNotEmpty)
+                          ? currentData['images'][0]
+                          : (currentData['imageUrl'] ?? ''),
+                      'lastMessage': '',
+                      'lastMessageTime': FieldValue.serverTimestamp(),
+                    });
+                  }
+
+                  if (context.mounted) {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
+                      chatRoomId: chatRoomId,
+                      otherUserId: ownerId,
+                      itemName: currentData['title'] ?? 'Chat',
+                    )));
+                  }
+                },
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF006C68)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: Text(
+                  status == 'found' ? 'แชทกับผู้ที่พบของชิ้นนี้' : 'แชทกับผู้ตามหา',
+                  style: const TextStyle(
+                    fontFamily: 'Line Seed Sans TH',
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Color(0xFF006C68),
+                  ),
+                ),
+              ),
+            ),
           ] else ...[
             Container(
               width: double.infinity,
@@ -574,6 +630,73 @@ class ItemDetailScreen extends StatelessWidget {
             ),
           ],
         ],
+      ],
+    );
+  }
+
+  Widget _buildOwnerChatList(BuildContext context, Map<String, dynamic> currentData) {
+    if (currentData['id'] == null) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        const Text(
+          "รายการแชทที่เกี่ยวข้อง",
+          style: TextStyle(
+            fontFamily: 'Line Seed Sans TH',
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 10),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('chats')
+              .where('itemId', isEqualTo: currentData['id'])
+              .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+                child: const Text('ยังไม่มีการติดต่อเข้ามา', style: TextStyle(color: Colors.grey, fontFamily: 'Line Seed Sans TH'), textAlign: TextAlign.center),
+              );
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: snapshot.data!.docs.length,
+              separatorBuilder: (context, index) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final chatDoc = snapshot.data!.docs[index];
+                final chatData = chatDoc.data() as Map<String, dynamic>;
+                final String visitorId = chatData['visitorId'] ?? '';
+                final String lastMessage = chatData['lastMessage'] ?? '-';
+
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+                  leading: CircleAvatar(backgroundColor: const Color(0xFF006C68).withOpacity(0.1), child: const Icon(Icons.person, color: Color(0xFF006C68))),
+                  title: const Text('ผู้ติดต่อ', style: TextStyle(fontFamily: 'Line Seed Sans TH', fontWeight: FontWeight.bold, fontSize: 14)),
+                  subtitle: Text(lastMessage, style: const TextStyle(fontFamily: 'Line Seed Sans TH', fontSize: 12, color: Colors.grey), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(
+                      chatRoomId: chatDoc.id,
+                      otherUserId: visitorId,
+                      itemName: currentData['title'] ?? 'Chat',
+                    )));
+                  },
+                );
+              },
+            );
+          },
+        ),
       ],
     );
   }
